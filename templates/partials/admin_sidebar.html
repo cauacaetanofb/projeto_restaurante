@@ -1,0 +1,36 @@
+{% if is_admin %}
+<!-- Admin Sidebar -->
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">🍔 GFood</div>
+        <div class="subtitle">{{ user.first_name|default:user.username }} — Admin</div>
+    </div>
+    <a href="{% url 'dashboard' %}" class="sidebar-item {% if active_page == 'admin' %}active{% endif %}">
+        <span class="icon">⚙️</span> Painel Admin
+    </a>
+    <a href="{% url 'dashboard' %}?as=caixa" class="sidebar-item {% if active_page == 'caixa' %}active{% endif %}">
+        <span class="icon">💰</span> Caixa
+    </a>
+    <a href="{% url 'dashboard' %}?as=balcao" class="sidebar-item {% if active_page == 'balcao' %}active{% endif %}">
+        <span class="icon">🍽️</span> Balcão
+    </a>
+    <a href="{% url 'dashboard' %}?as=cliente" class="sidebar-item {% if active_page == 'cliente' %}active{% endif %}">
+        <span class="icon">👤</span> Meu Cartão
+    </a>
+    <div style="flex:1;"></div>
+    <a href="{% url 'logout' %}" class="sidebar-item" style="color:var(--danger);">
+        <span class="icon">🚪</span> Sair
+    </a>
+</div>
+<script>
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+}
+</script>
+{% endif %}

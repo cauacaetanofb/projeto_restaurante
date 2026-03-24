@@ -1,0 +1,30 @@
+Quero criar um sistema para um restaurante chamado gfood;
+Nesse sistema existirão 4 tipos de usuários:
+1. Administrador:
+    Gerencia os produtos;
+    Gerencia os usuários, ele é o único que pode criar os usuários balcao e caixa;
+    Tem acesso as relatorios de vendas;
+2. Balcao:
+    Adiciona produtos em um carrinho;
+    Lê o QR code do cliente para pagar com o saldo;
+    Consulta saldo do cliente através do QR code;
+3. Caixa:
+    Cria um cartão temporário com QR code para o cliente usando Nome, CPF e número de telefone;
+    Adiciona saldo ao cartão do cliente;
+    Remove saldo do cartão do cliente;
+    Consulta saldo do cliente através do QR code;
+    Faz tudo que o usuário Balcao faz;
+4. Cliente:
+    Cria cadastro usando Nome, CPF, número de telefone e e-mail;
+    Gera um cartão virtual com QR code;
+    Consulta saldo do cartão;
+    Adiciona saldo ao cartão;
+
+Esse sistema será criado em Django;
+O sistema será no formato web, com login e senha para cada tipo de usuário;
+O sistema tem foco no uso pelo celular, mas também deve funcionar em computadores, mas não pode mudar o tamanho e design para computadores;
+O sistema será no estilo de uma página só para cada usuário, após o login cada usuário vai entrar em uma página que não vai alterar durante a navegação;
+O front end deve ser usado a biblioteca Bulma para estilização;
+A primeira tela do sistema será um login onde o usuário vai logar com sua conta, de acordo com o tipo de usuário ele será redirecionado para a página correspondente;
+O botão de cadastro cria apenas usuário Cliente;
+Quando já logou alguma vez e ele ao acessar o link do site ele já vai ser redirecionado para a sua página de acordo com o tipo de usuário;

@@ -1,0 +1,614 @@
+{% extends 'base.html' %}
+{% block title %}GFood — Caixa{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+{% endblock %}
+
+{% block content %}
+{% include 'partials/admin_sidebar.html' %}
+
+{% if not is_admin %}
+<!-- Sidebar caixa (non-admin) -->
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">🍔 GFood</div>
+        <div class="subtitle">{{ user.first_name|default:user.username }}</div>
+    </div>
+    <div class="sidebar-item active" id="nav-caixa" onclick="switchMode('caixa')">
+        <span class="icon">💰</span> Caixa
+    </div>
+    <div class="sidebar-item" id="nav-balcao" onclick="switchMode('balcao')">
+        <span class="icon">🍽️</span> Balcão
+    </div>
+    <div style="flex:1;"></div>
+    <a href="{% url 'logout' %}" class="sidebar-item" style="color:var(--danger);text-decoration:none;">
+        <span class="icon">🚪</span> Sair
+    </a>
+</div>
+<script>
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+}
+</script>
+{% endif %}
+
+<!-- Header -->
+<div class="dash-header">
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+        <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="logo">GFood</div>
+        <span class="mode-badge" id="mode-label">CAIXA</span>
+    </div>
+    <div class="user-info">
+        <span class="user-name">{{ user.first_name|default:user.username }}</span>
+    </div>
+</div>
+
+<!-- ====== CAIXA MODE TABS ====== -->
+<div id="tabs-caixa" class="tabs-nav">
+    <button class="tab-btn active" data-tab="cartao" onclick="switchTab('cartao', this)">🆕 Cartão</button>
+    <button class="tab-btn" data-tab="saldo" onclick="switchTab('saldo', this)">💰 Saldo</button>
+    <button class="tab-btn" data-tab="relatorio" onclick="switchTab('relatorio', this)">📊 Relatório</button>
+</div>
+
+<!-- ====== BALCAO MODE TABS ====== -->
+<div id="tabs-balcao" class="tabs-nav" style="display:none;">
+    <button class="tab-btn active" data-tab="cardapio" onclick="switchTab('cardapio', this)">🍕 Cardápio</button>
+    <button class="tab-btn" data-tab="carrinho" onclick="switchTab('carrinho', this)">🛒 Carrinho <span id="cart-badge-b"></span></button>
+    <button class="tab-btn" data-tab="pagamento" onclick="switchTab('pagamento', this)">💳 Pagar</button>
+    <button class="tab-btn" data-tab="consultar-saldo" onclick="switchTab('consultar-saldo', this)">💰 Saldo</button>
+</div>
+
+<!-- Tab: Cardápio (shared) -->
+<div id="tab-cardapio" class="tab-content active">
+    <div class="surface-card">
+        <h3>Cardápio</h3>
+        <div id="cat-filter" style="display:flex;gap:0.4rem;overflow-x:auto;padding-bottom:0.6rem;margin-bottom:0.8rem;scrollbar-width:none;-ms-overflow-style:none;">
+            <button class="period-btn active" onclick="filterByCat('', this)">Todos</button>
+            <button class="period-btn" onclick="filterByCat('Bebidas', this)">Bebidas</button>
+            <button class="period-btn" onclick="filterByCat('Cervejas', this)">Cervejas</button>
+            <button class="period-btn" onclick="filterByCat('Doces', this)">Doces</button>
+            <button class="period-btn" onclick="filterByCat('Chips', this)">Chips</button>
+            <button class="period-btn" onclick="filterByCat('Guarnições', this)">Guarnições</button>
+            <button class="period-btn" onclick="filterByCat('Picolés', this)">Picolés</button>
+            <button class="period-btn" onclick="filterByCat('Porções', this)">Porções</button>
+            <button class="period-btn" onclick="filterByCat('Salgados', this)">Salgados</button>
+        </div>
+        <div id="menu-list">
+            <div class="loading"><div class="spinner"></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Carrinho (shared) -->
+<div id="tab-carrinho" class="tab-content">
+    <div class="surface-card">
+        <h3>Carrinho</h3>
+        <div id="cart-items">
+            <div class="empty-state"><div class="icon">🛒</div><p>Carrinho vazio</p></div>
+        </div>
+        <div id="cart-total-section" style="display:none;">
+            <div class="cart-total">
+                <span>Total</span>
+                <span class="value" id="cart-total-value">R$ 0,00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Pagamento (shared) -->
+<div id="tab-pagamento" class="tab-content">
+    <div class="surface-card">
+        <h3>Pagamento</h3>
+        <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">Escaneie o QR Code do cliente.</p>
+        <div class="dash-form">
+            <div class="field">
+                <label>Código do Cartão</label>
+                <input class="input" id="pay-qr-input" placeholder="UUID do cartão">
+            </div>
+            <button class="btn-secondary" onclick="startScanner('pay')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
+            <div id="pay-qr-reader" style="margin-bottom:1rem;"></div>
+        </div>
+        <div id="pay-card-info" style="display:none;margin-bottom:1rem;">
+            <div class="surface-card" style="background:var(--bg-dark);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="color:var(--text-primary);font-weight:600;" id="pay-client-name">—</div>
+                        <div style="color:var(--text-secondary);font-size:0.8rem;" id="pay-client-type">—</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:var(--success);font-weight:700;font-size:1.1rem;" id="pay-client-saldo">R$ 0,00</div>
+                        <div style="color:var(--text-secondary);font-size:0.75rem;">Saldo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="pay-cart-summary"></div>
+        <button class="btn-primary" onclick="processPayment()" id="btn-pay" style="display:none;margin-top:1rem;">
+            Confirmar Pagamento
+        </button>
+    </div>
+</div>
+
+<!-- Tab: Criar Cartão (caixa only) -->
+<div id="tab-cartao" class="tab-content">
+    <div class="surface-card">
+        <h3>Criar Cartão Temporário</h3>
+        <form class="dash-form" onsubmit="return createTempCard(event)">
+            <div class="field">
+                <label>Nome</label>
+                <input class="input" id="tc-nome" placeholder="Nome do cliente" required>
+            </div>
+            <div class="field">
+                <label>CPF</label>
+                <input class="input" id="tc-cpf" placeholder="000.000.000-00">
+            </div>
+            <div class="field">
+                <label>Telefone</label>
+                <input class="input" id="tc-telefone" placeholder="(00) 00000-0000">
+            </div>
+            <button type="submit" class="btn-primary">Criar Cartão</button>
+        </form>
+        <div id="temp-card-result" style="display:none;margin-top:1.5rem;">
+            <div class="qr-container">
+                <img id="tc-qr-img" src="" alt="QR Code">
+                <div class="qr-label" id="tc-qr-label"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Gerenciar Saldo (caixa only) -->
+<div id="tab-saldo" class="tab-content">
+    <div class="surface-card">
+        <h3>Gerenciar Saldo</h3>
+        <div class="dash-form">
+            <div class="field">
+                <label>Código do Cartão</label>
+                <input class="input" id="saldo-qr-input" placeholder="UUID do cartão">
+            </div>
+            <button class="btn-secondary" onclick="startScanner('saldo')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
+            <div id="saldo-qr-reader" style="margin-bottom:1rem;"></div>
+            <button class="btn-secondary" onclick="consultarSaldo()" style="width:100%;margin-bottom:1rem;">🔍 Consultar Saldo</button>
+        </div>
+        <div id="saldo-card-info" style="display:none;">
+            <div class="balance-display">
+                <div class="balance-label" id="saldo-client-name">—</div>
+                <div class="balance-value" id="saldo-value">R$ 0,00</div>
+            </div>
+            <div class="dash-form" style="margin-top:1rem;">
+                <div class="field">
+                    <label>Valor (R$)</label>
+                    <input class="input" id="saldo-valor" type="number" step="0.01" min="0.01" placeholder="0.00">
+                </div>
+                <div class="field">
+                    <label>Forma de Pagamento</label>
+                    <select id="saldo-metodo" class="input" style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:0.6em 0.5em;font-size:0.85rem;">
+                        <option value="pix">PIX</option>
+                        <option value="credito">Cartão de Crédito</option>
+                        <option value="debito">Cartão de Débito</option>
+                        <option value="dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="btn-success" onclick="alterarSaldo('add')" style="flex:1;">+ Adicionar</button>
+                    <button class="btn-danger" onclick="alterarSaldo('remove')" style="flex:1;">− Remover</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Consultar Saldo (balcao only) -->
+<div id="tab-consultar-saldo" class="tab-content">
+    <div class="surface-card">
+        <h3>Consultar Saldo</h3>
+        <div class="dash-form">
+            <div class="field">
+                <label>Código do Cartão</label>
+                <input class="input" id="csaldo-qr-input" placeholder="UUID do cartão">
+            </div>
+            <button class="btn-secondary" onclick="startScanner('csaldo')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
+            <div id="csaldo-qr-reader" style="margin-bottom:1rem;"></div>
+            <button class="btn-secondary" onclick="consultarSaldoBalcao()" style="width:100%;margin-bottom:1rem;">🔍 Consultar Saldo</button>
+        </div>
+        <div id="csaldo-card-info" style="display:none;">
+            <div class="balance-display">
+                <div class="balance-label" id="csaldo-client-name">—</div>
+                <div class="balance-value" id="csaldo-value">R$ 0,00</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Relatório (caixa only) -->
+<div id="tab-relatorio" class="tab-content">
+    <div class="surface-card">
+        <h3>📊 Relatório do Dia</h3>
+        <div id="report-loading" class="loading"><div class="spinner"></div></div>
+        <div id="report-content" style="display:none;">
+            <div id="report-summary"></div>
+            <div id="report-metodos" style="margin-top:1rem;"></div>
+            <div id="report-top" style="margin-top:1rem;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let cart = [];
+let activeScanner = null;
+let activeScannerPrefix = null;
+let currentMode = 'caixa';
+
+// ===== Sidebar =====
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
+// ===== Mode Switching =====
+function switchMode(mode) {
+    currentMode = mode;
+    closeSidebar();
+
+    // Update sidebar active
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    document.getElementById('nav-' + mode).classList.add('active');
+
+    // Update mode badge
+    document.getElementById('mode-label').textContent = mode.toUpperCase();
+
+    // Show correct tabs
+    document.getElementById('tabs-caixa').style.display = mode === 'caixa' ? 'flex' : 'none';
+    document.getElementById('tabs-balcao').style.display = mode === 'balcao' ? 'flex' : 'none';
+
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+    // Show default tab for mode
+    const defaultTab = mode === 'caixa' ? 'cartao' : 'cardapio';
+    document.getElementById('tab-' + defaultTab).classList.add('active');
+    const activeTabs = document.getElementById('tabs-' + mode);
+    activeTabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    activeTabs.querySelector('.tab-btn').classList.add('active');
+
+    // Update cart badge
+    updateCartBadge();
+}
+
+// ===== Tab Switching =====
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    const activeTabs = document.getElementById('tabs-' + currentMode);
+    activeTabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'carrinho') renderCart();
+    if (name === 'pagamento') renderPaySummary();
+    if (name === 'relatorio') loadDailyReport();
+    // Stop any active scanner
+    if (activeScanner) {
+        activeScanner.stop().then(() => {
+            activeScanner = null;
+            if (activeScannerPrefix) {
+                document.getElementById(activeScannerPrefix + '-qr-reader').innerHTML = '';
+            }
+        }).catch(() => {});
+    }
+}
+
+// ===== Menu =====
+let allMenuProducts = [];
+let selectedCat = '';
+
+async function loadMenu() {
+    try {
+        const data = await apiFetch('/api/products/');
+        allMenuProducts = data.products.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        renderMenu();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+function filterByCat(cat, btn) {
+    selectedCat = cat;
+    document.querySelectorAll('#cat-filter .period-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderMenu();
+}
+
+function renderMenu() {
+    const container = document.getElementById('menu-list');
+    let products = allMenuProducts;
+    if (selectedCat) products = products.filter(p => p.categoria === selectedCat);
+    if (!products.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🍕</div><p>Nenhum produto encontrado</p></div>';
+        return;
+    }
+    container.innerHTML = products.map(p => `
+        <div class="product-item">
+            <div class="product-info">
+                <div class="name">${p.nome}</div>
+                <div class="price">R$ ${parseFloat(p.preco).toFixed(2)}</div>
+                <div class="category">${p.categoria}</div>
+            </div>
+            <button class="btn-add-cart" onclick='addToCart(${JSON.stringify(p)})'>+</button>
+        </div>
+    `).join('');
+}
+
+// ===== Cart =====
+function addToCart(product) {
+    const existing = cart.find(c => c.id === product.id);
+    if (existing) existing.quantidade++;
+    else cart.push({ ...product, quantidade: 1 });
+    updateCartBadge();
+    showToast(`${product.nome} adicionado!`);
+}
+
+function removeFromCart(productId) {
+    cart = cart.filter(c => c.id !== productId);
+    updateCartBadge();
+    renderCart();
+}
+
+function changeQty(productId, delta) {
+    const item = cart.find(c => c.id === productId);
+    if (!item) return;
+    item.quantidade += delta;
+    if (item.quantidade <= 0) { removeFromCart(productId); return; }
+    renderCart();
+    updateCartBadge();
+}
+
+function getCartTotal() {
+    return cart.reduce((sum, c) => sum + parseFloat(c.preco) * c.quantidade, 0);
+}
+
+function updateCartBadge() {
+    const count = cart.reduce((s, c) => s + c.quantidade, 0);
+    const text = count > 0 ? `(${count})` : '';
+    const el1 = document.getElementById('cart-badge');
+    const el2 = document.getElementById('cart-badge-b');
+    if (el1) el1.textContent = text;
+    if (el2) el2.textContent = text;
+}
+
+function renderCart() {
+    const container = document.getElementById('cart-items');
+    const totalSection = document.getElementById('cart-total-section');
+    if (!cart.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🛒</div><p>Carrinho vazio</p></div>';
+        totalSection.style.display = 'none';
+        return;
+    }
+    totalSection.style.display = 'block';
+    container.innerHTML = cart.map(c => `
+        <div class="cart-item">
+            <div class="product-info" style="flex:1;">
+                <div class="name">${c.nome}</div>
+                <div class="price">R$ ${(parseFloat(c.preco) * c.quantidade).toFixed(2)}</div>
+            </div>
+            <div class="cart-qty">
+                <button onclick="changeQty(${c.id}, -1)">−</button>
+                <span>${c.quantidade}</span>
+                <button onclick="changeQty(${c.id}, 1)">+</button>
+            </div>
+        </div>
+    `).join('');
+    document.getElementById('cart-total-value').textContent = `R$ ${getCartTotal().toFixed(2)}`;
+}
+
+// ===== Payment =====
+function renderPaySummary() {
+    const container = document.getElementById('pay-cart-summary');
+    if (!cart.length) {
+        container.innerHTML = '<div class="alert alert-error">Adicione produtos ao carrinho primeiro.</div>';
+        document.getElementById('btn-pay').style.display = 'none';
+        return;
+    }
+    container.innerHTML = `
+        <div style="border-top:1px solid var(--border);padding-top:0.8rem;">
+            ${cart.map(c => `<div style="display:flex;justify-content:space-between;color:var(--text-secondary);font-size:0.85rem;padding:0.3rem 0;">
+                <span>${c.quantidade}x ${c.nome}</span>
+                <span>R$ ${(parseFloat(c.preco)*c.quantidade).toFixed(2)}</span>
+            </div>`).join('')}
+            <div class="cart-total"><span>Total</span><span class="value">R$ ${getCartTotal().toFixed(2)}</span></div>
+        </div>`;
+}
+
+// ===== QR Scanner =====
+function startScanner(prefix) {
+    const readerId = prefix + '-qr-reader';
+    const inputId = prefix + '-qr-input';
+    const reader = document.getElementById(readerId);
+    if (activeScanner) {
+        activeScanner.stop().then(() => { activeScanner = null; reader.innerHTML = ''; });
+        return;
+    }
+    activeScannerPrefix = prefix;
+    activeScanner = new Html5Qrcode(readerId);
+    activeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (text) => {
+            document.getElementById(inputId).value = text;
+            activeScanner.stop().then(() => { activeScanner = null; reader.innerHTML = ''; });
+            if (prefix === 'pay') checkCardForPayment(text);
+            if (prefix === 'saldo') consultarSaldo(text);
+            if (prefix === 'csaldo') consultarSaldoBalcao(text);
+        }
+    ).catch(err => showToast('Erro na câmera: ' + err, 'error'));
+}
+
+async function checkCardForPayment(qrData) {
+    if (!qrData) qrData = document.getElementById('pay-qr-input').value;
+    if (!qrData) return;
+    try {
+        const data = await apiFetch(`/api/cards/balance/?qr_data=${qrData}`);
+        document.getElementById('pay-card-info').style.display = 'block';
+        document.getElementById('pay-client-name').textContent = data.card.nome;
+        document.getElementById('pay-client-type').textContent = data.card.is_temporary ? 'Cartão Temporário' : 'Cliente';
+        document.getElementById('pay-client-saldo').textContent = `R$ ${parseFloat(data.card.saldo).toFixed(2)}`;
+        document.getElementById('btn-pay').style.display = 'block';
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+document.getElementById('pay-qr-input').addEventListener('change', function() {
+    checkCardForPayment(this.value);
+});
+
+async function processPayment() {
+    const qrData = document.getElementById('pay-qr-input').value;
+    if (!qrData) { showToast('Escaneie ou digite o código do cartão', 'error'); return; }
+    if (!cart.length) { showToast('Carrinho vazio', 'error'); return; }
+    try {
+        const data = await apiFetch('/api/orders/create/', {
+            method: 'POST',
+            body: JSON.stringify({
+                qr_data: qrData,
+                items: cart.map(c => ({ product_id: c.id, quantidade: c.quantidade }))
+            })
+        });
+        showToast(`Pagamento confirmado! Pedido #${data.order_id}`);
+        cart = [];
+        updateCartBadge();
+        document.getElementById('pay-qr-input').value = '';
+        document.getElementById('pay-card-info').style.display = 'none';
+        document.getElementById('btn-pay').style.display = 'none';
+        document.getElementById('pay-cart-summary').innerHTML = '';
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ===== Temp Card =====
+async function createTempCard(e) {
+    e.preventDefault();
+    try {
+        const data = await apiFetch('/api/cards/temp/create/', {
+            method: 'POST',
+            body: JSON.stringify({
+                nome: document.getElementById('tc-nome').value,
+                cpf: document.getElementById('tc-cpf').value,
+                telefone: document.getElementById('tc-telefone').value,
+            })
+        });
+        document.getElementById('temp-card-result').style.display = 'block';
+        document.getElementById('tc-qr-img').src = 'data:image/png;base64,' + data.card.qr_code_image;
+        document.getElementById('tc-qr-label').textContent = `Cartão de ${data.card.nome} — ${data.card.qr_code_data}`;
+        showToast('Cartão temporário criado!');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ===== Balance (Caixa mode) =====
+async function consultarSaldo(qrData) {
+    if (!qrData) qrData = document.getElementById('saldo-qr-input').value;
+    if (!qrData) { showToast('Digite ou escaneie o código do cartão', 'error'); return; }
+    try {
+        const data = await apiFetch(`/api/cards/balance/?qr_data=${qrData}`);
+        document.getElementById('saldo-card-info').style.display = 'block';
+        document.getElementById('saldo-client-name').textContent = data.card.nome;
+        document.getElementById('saldo-value').textContent = `R$ ${parseFloat(data.card.saldo).toFixed(2)}`;
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function alterarSaldo(action) {
+    const qrData = document.getElementById('saldo-qr-input').value;
+    const valor = document.getElementById('saldo-valor').value;
+    const metodo = document.getElementById('saldo-metodo').value;
+    if (!qrData || !valor) { showToast('Preencha o código e o valor', 'error'); return; }
+    try {
+        const url = action === 'add' ? '/api/cards/balance/add/' : '/api/cards/balance/remove/';
+        const data = await apiFetch(url, {
+            method: 'POST',
+            body: JSON.stringify({ qr_data: qrData, valor: valor, metodo: metodo })
+        });
+        document.getElementById('saldo-value').textContent = `R$ ${parseFloat(data.novo_saldo).toFixed(2)}`;
+        document.getElementById('saldo-valor').value = '';
+        showToast(action === 'add' ? 'Saldo adicionado!' : 'Saldo removido!');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ===== Balance (Balcao mode - consulta only) =====
+async function consultarSaldoBalcao(qrData) {
+    if (!qrData) qrData = document.getElementById('csaldo-qr-input').value;
+    if (!qrData) { showToast('Digite ou escaneie o código do cartão', 'error'); return; }
+    try {
+        const data = await apiFetch(`/api/cards/balance/?qr_data=${qrData}`);
+        document.getElementById('csaldo-card-info').style.display = 'block';
+        document.getElementById('csaldo-client-name').textContent = data.card.nome;
+        document.getElementById('csaldo-value').textContent = `R$ ${parseFloat(data.card.saldo).toFixed(2)}`;
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ===== Daily Report =====
+async function loadDailyReport() {
+    document.getElementById('report-loading').style.display = 'block';
+    document.getElementById('report-content').style.display = 'none';
+    try {
+        const data = await apiFetch('/api/reports/daily/');
+        document.getElementById('report-loading').style.display = 'none';
+        document.getElementById('report-content').style.display = 'block';
+
+        document.getElementById('report-summary').innerHTML = `
+            <div style="text-align:center;margin-bottom:0.5rem;color:var(--text-secondary);font-size:0.82rem;">📅 ${data.data}</div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <div class="surface-card" style="flex:1;text-align:center;margin:0;min-width:45%;background:var(--bg-dark);">
+                    <div style="color:var(--success);font-size:1.3rem;font-weight:800;">R$ ${parseFloat(data.total_vendas).toFixed(2)}</div>
+                    <div style="color:var(--text-secondary);font-size:0.72rem;">Vendas (${data.total_pedidos} pedidos)</div>
+                </div>
+                <div class="surface-card" style="flex:1;text-align:center;margin:0;min-width:45%;background:var(--bg-dark);">
+                    <div style="color:var(--warning);font-size:1.3rem;font-weight:800;">R$ ${parseFloat(data.total_depositos).toFixed(2)}</div>
+                    <div style="color:var(--text-secondary);font-size:0.72rem;">Depósitos (${data.total_depositos_count})</div>
+                </div>
+            </div>
+        `;
+
+        if (data.por_metodo && data.por_metodo.length) {
+            document.getElementById('report-metodos').innerHTML = `
+                <h3 style="color:var(--text-primary);font-size:0.9rem;margin-bottom:0.5rem;">💳 Recebido por Forma de Pagamento</h3>
+                <table class="report-table">
+                    <thead><tr><th>Método</th><th>Qtd</th><th>Total</th></tr></thead>
+                    <tbody>${data.por_metodo.map(m => `
+                        <tr><td>${m.metodo}</td><td>${m.count}</td><td style="color:var(--success);font-weight:600;">R$ ${parseFloat(m.total).toFixed(2)}</td></tr>
+                    `).join('')}</tbody>
+                </table>
+            `;
+        } else {
+            document.getElementById('report-metodos').innerHTML = '<div class="empty-state"><p>Nenhum depósito hoje</p></div>';
+        }
+
+        if (data.top_products && data.top_products.length) {
+            document.getElementById('report-top').innerHTML = `
+                <h3 style="color:var(--text-primary);font-size:0.9rem;margin-bottom:0.5rem;">🏆 Mais Vendidos Hoje</h3>
+                <table class="report-table">
+                    <thead><tr><th>Produto</th><th>Qtd</th><th>Total</th></tr></thead>
+                    <tbody>${data.top_products.map(p => `
+                        <tr><td>${p.nome}</td><td>${p.quantidade}</td><td>R$ ${parseFloat(p.valor).toFixed(2)}</td></tr>
+                    `).join('')}</tbody>
+                </table>
+            `;
+        } else {
+            document.getElementById('report-top').innerHTML = '<div class="empty-state"><p>Nenhuma venda hoje</p></div>';
+        }
+    } catch (e) {
+        document.getElementById('report-loading').style.display = 'none';
+        showToast(e.message, 'error');
+    }
+}
+
+// Init
+loadMenu();
+</script>
+{% endblock %}

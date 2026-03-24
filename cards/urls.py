@@ -1,0 +1,13 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('api/cards/my/', views.api_my_card, name='api_my_card'),
+    path('api/cards/balance/', views.api_check_balance, name='api_check_balance'),
+    path('api/cards/balance/add/', views.api_add_balance, name='api_add_balance'),
+    path('api/cards/balance/remove/', views.api_remove_balance, name='api_remove_balance'),
+    path('api/cards/temp/create/', views.api_create_temp_card, name='api_create_temp_card'),
+    path('api/cards/client/add/', views.api_client_add_balance, name='api_client_add_balance'),
+    path('api/cards/client/<int:client_id>/transactions/', views.api_client_transactions, name='api_client_transactions'),
+    path('api/cards/my/transactions/', views.api_my_transactions, name='api_my_transactions'),
+]

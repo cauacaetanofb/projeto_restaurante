@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}GFood — Login{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-logo">🍔 GFood</div>
+    <div class="login-subtitle">Sistema do Restaurante</div>
+
+    <div class="login-card">
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {% for error in form.non_field_errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="field">
+                <label class="label">{{ form.username.label }}</label>
+                <div class="control">
+                    {{ form.username }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.password.label }}</label>
+                <div class="control">
+                    {{ form.password }}
+                </div>
+            </div>
+            <div class="field" style="margin-top: 1.5rem;">
+                <button type="submit" class="btn-primary">Entrar</button>
+            </div>
+        </form>
+
+        <div style="text-align:center;margin:0.8rem 0 0.3rem;">
+            <a href="#" onclick="showForgotStep(1); return false;" style="color:#ffffff;font-size:0.85rem;">Esqueci minha senha</a>
+        </div>
+
+        <div class="link-register">
+            Não tem conta? <a href="{% url 'register' %}">Cadastre-se</a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Esqueci Minha Senha -->
+<div id="modal-forgot" class="modal-overlay">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeForgot()">&times;</button>
+
+        <!-- Etapa 1: Informar e-mail -->
+        <div id="forgot-step-1">
+            <h3>🔑 Recuperar Senha</h3>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">Informe o e-mail cadastrado. Enviaremos um código de 6 dígitos.</p>
+            <div class="field">
+                <label>E-mail</label>
+                <input class="input" id="fg-email" type="email" placeholder="seu@email.com" required>
+            </div>
+            <button class="btn-primary" onclick="sendResetCode()" style="margin-top:0.5rem;">Enviar Código</button>
+        </div>
+
+        <!-- Etapa 2: Informar código e nova senha -->
+        <div id="forgot-step-2" style="display:none;">
+            <h3>🔐 Nova Senha</h3>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">Digite o código recebido no e-mail e a nova senha.</p>
+            <div class="field">
+                <label>Código (6 dígitos)</label>
+                <input class="input" id="fg-code" maxlength="6" placeholder="000000" required style="text-align:center;font-size:1.5rem;letter-spacing:0.5rem;font-weight:bold;">
+            </div>
+            <div class="field">
+                <label>Nova Senha</label>
+                <input class="input" id="fg-new-pass" type="password" placeholder="Mínimo 8 caracteres" required>
+            </div>
+            <div class="field">
+                <label>Confirmar Nova Senha</label>
+                <input class="input" id="fg-new-pass2" type="password" placeholder="Confirme a nova senha" required>
+            </div>
+            <button class="btn-primary" onclick="resetPassword()" style="margin-top:0.5rem;">Alterar Senha</button>
+            <div style="text-align:center;margin-top:0.8rem;">
+                <a href="#" onclick="sendResetCode(); return false;" style="color:var(--secondary);font-size:0.82rem;">Reenviar código</a>
+            </div>
+        </div>
+
+        <!-- Etapa 3: Sucesso -->
+        <div id="forgot-step-3" style="display:none;text-align:center;">
+            <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+            <h3>Senha alterada!</h3>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">Agora você pode fazer login com a nova senha.</p>
+            <button class="btn-primary" onclick="closeForgot()">Voltar ao Login</button>
+        </div>
+
+        <div id="fg-toast" style="display:none;margin-top:0.8rem;padding:0.6rem;border-radius:8px;font-size:0.82rem;text-align:center;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+    || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+function showForgotStep(step) {
+    document.getElementById('forgot-step-1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('forgot-step-2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('forgot-step-3').style.display = step === 3 ? 'block' : 'none';
+    document.getElementById('fg-toast').style.display = 'none';
+    if (step === 1) document.getElementById('modal-forgot').classList.add('active');
+}
+
+function closeForgot() {
+    document.getElementById('modal-forgot').classList.remove('active');
+}
+
+function fgToast(msg, type) {
+    const el = document.getElementById('fg-toast');
+    el.textContent = msg;
+    el.style.display = 'block';
+    el.style.background = type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)';
+    el.style.color = type === 'error' ? '#ef4444' : '#22c55e';
+}
+
+async function sendResetCode() {
+    const email = document.getElementById('fg-email').value.trim();
+    if (!email) { fgToast('Informe o e-mail', 'error'); return; }
+    try {
+        const res = await fetch('/api/forgot-password/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            credentials: 'same-origin',
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) { fgToast(data.error || 'Erro', 'error'); return; }
+        showForgotStep(2);
+        fgToast('Código enviado para ' + email, 'success');
+    } catch (e) { fgToast('Erro na conexão', 'error'); }
+}
+
+async function resetPassword() {
+    const email = document.getElementById('fg-email').value.trim();
+    const code = document.getElementById('fg-code').value.trim();
+    const pass1 = document.getElementById('fg-new-pass').value;
+    const pass2 = document.getElementById('fg-new-pass2').value;
+    if (!code || !pass1) { fgToast('Preencha todos os campos', 'error'); return; }
+    if (pass1 !== pass2) { fgToast('As senhas não coincidem', 'error'); return; }
+    if (pass1.length < 8) { fgToast('Mínimo 8 caracteres', 'error'); return; }
+    try {
+        const res = await fetch('/api/reset-password/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            credentials: 'same-origin',
+            body: JSON.stringify({ email, code, new_password: pass1 })
+        });
+        const data = await res.json();
+        if (!res.ok) { fgToast(data.error || 'Erro', 'error'); return; }
+        showForgotStep(3);
+    } catch (e) { fgToast('Erro na conexão', 'error'); }
+}
+</script>
+{% endblock %}

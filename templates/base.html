@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}GFood{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app-wrapper">
+        {% block content %}{% endblock %}
+    </div>
+    <div id="toast" class="toast"></div>
+    <script>
+        function getCookie(name) {
+            let val = null;
+            document.cookie.split(';').forEach(c => {
+                c = c.trim();
+                if (c.startsWith(name + '=')) val = decodeURIComponent(c.substring(name.length + 1));
+            });
+            return val;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show ' + type;
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        async function apiFetch(url, options = {}) {
+            const defaults = {
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                },
+                credentials: 'same-origin',
+            };
+            if (options.body && !(options.body instanceof FormData)) {
+                defaults.headers['Content-Type'] = 'application/json';
+            }
+            const res = await fetch(url, { ...defaults, ...options, headers: { ...defaults.headers, ...(options.headers || {}) } });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Erro na requisição');
+            }
+            return data;
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

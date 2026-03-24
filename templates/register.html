@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}GFood — Cadastro{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-logo">🍔 GFood</div>
+    <div class="login-subtitle">Criar Conta de Cliente</div>
+
+    <div class="login-card">
+        {% if form.errors %}
+        <div class="alert alert-error">
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="field">
+                <label class="label">{{ field.label }}</label>
+                <div class="control">
+                    {{ field }}
+                </div>
+            </div>
+            {% endfor %}
+            <div class="field" style="margin-top: 1.5rem;">
+                <button type="submit" class="btn-primary">Criar Conta</button>
+            </div>
+        </form>
+
+        <div class="link-register">
+            Já tem conta? <a href="{% url 'login' %}">Fazer Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
