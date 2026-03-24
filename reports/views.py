@@ -66,6 +66,20 @@ def api_sales_report(request):
         count=Count('id')
     ).order_by('-total')
 
+    # Depósitos separados por origem
+    depositos_app = transactions.filter(tipo='deposito', origem='app').aggregate(
+        total=Sum('valor'), count=Count('id')
+    )
+    depositos_caixa = transactions.filter(tipo='deposito', origem='caixa').aggregate(
+        total=Sum('valor'), count=Count('id')
+    )
+    por_metodo_app = transactions.filter(tipo='deposito', origem='app').values('metodo').annotate(
+        total=Sum('valor'), count=Count('id')
+    ).order_by('-total')
+    por_metodo_caixa = transactions.filter(tipo='deposito', origem='caixa').values('metodo').annotate(
+        total=Sum('valor'), count=Count('id')
+    ).order_by('-total')
+
     # Total de retiradas
     retiradas = transactions.filter(tipo='retirada').aggregate(
         total=Sum('valor'),
@@ -88,6 +102,22 @@ def api_sales_report(request):
         'total_retiradas_count': retiradas['count'],
         'total_pagamentos_saldo': str(pagamentos_saldo['total'] or 0),
         'total_pagamentos_count': pagamentos_saldo['count'],
+        'depositos_app': {
+            'total': str(depositos_app['total'] or 0),
+            'count': depositos_app['count'],
+            'por_metodo': [
+                {'metodo': metodo_labels.get(m['metodo'], m['metodo']), 'total': str(m['total']), 'count': m['count']}
+                for m in por_metodo_app
+            ],
+        },
+        'depositos_caixa': {
+            'total': str(depositos_caixa['total'] or 0),
+            'count': depositos_caixa['count'],
+            'por_metodo': [
+                {'metodo': metodo_labels.get(m['metodo'], m['metodo']), 'total': str(m['total']), 'count': m['count']}
+                for m in por_metodo_caixa
+            ],
+        },
         'daily': [
             {
                 'dia': d['dia'].strftime('%d/%m/%Y') if d['dia'] else '',
@@ -133,15 +163,16 @@ def api_caixa_daily_report(request):
         total_pedidos=Count('id')
     )
 
-    # Depósitos por método de pagamento
+    # Depósitos APENAS do caixa (presenciais)
     metodo_labels = dict(Transaction.METODO_CHOICES)
-    depositos_por_metodo = transactions.filter(tipo='deposito').values('metodo').annotate(
+    dep_caixa = transactions.filter(tipo='deposito', origem='caixa')
+    depositos_por_metodo = dep_caixa.values('metodo').annotate(
         total=Sum('valor'),
         count=Count('id')
     ).order_by('-total')
 
-    # Total de depósitos
-    depositos = transactions.filter(tipo='deposito').aggregate(
+    # Total de depósitos do caixa
+    depositos = dep_caixa.aggregate(
         total=Sum('valor'),
         count=Count('id')
     )

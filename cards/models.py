@@ -44,11 +44,16 @@ class Transaction(models.Model):
         ('saldo', 'Saldo do Cartão'),
         ('outro', 'Outro'),
     )
+    ORIGEM_CHOICES = (
+        ('app', 'App (Cliente)'),
+        ('caixa', 'Caixa (Presencial)'),
+    )
 
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='transactions', verbose_name='Cartão')
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, verbose_name='Tipo')
     valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Valor')
     metodo = models.CharField(max_length=10, choices=METODO_CHOICES, default='dinheiro', verbose_name='Método')
+    origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES, default='app', verbose_name='Origem')
     descricao = models.CharField(max_length=255, blank=True, verbose_name='Descrição')
     operador = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -81,7 +81,8 @@ def api_add_balance(request):
             tipo='deposito',
             valor=round(valor, 2),
             metodo=metodo,
-            descricao=f'Depósito via {dict(Transaction.METODO_CHOICES).get(metodo, metodo)}',
+            origem='caixa',
+            descricao=f'Recarga presencial via {dict(Transaction.METODO_CHOICES).get(metodo, metodo)}',
             operador=request.user,
         )
         return JsonResponse({'success': True, 'novo_saldo': str(card.saldo)})
@@ -128,22 +129,60 @@ def api_remove_balance(request):
 @login_required
 @require_POST
 def api_create_temp_card(request):
-    """Caixa cria cartão temporário."""
+    """Caixa cria cartão temporário vinculado a QR físico com saldo inicial."""
     if request.user.user_type not in ['admin', 'caixa']:
         return JsonResponse({'error': 'Sem permissão'}, status=403)
     data = json.loads(request.body)
     nome = data.get('nome', '')
     cpf = data.get('cpf', '')
     telefone = data.get('telefone', '')
+    qr_data = data.get('qr_data', '')
+    valor = data.get('valor', 0)
+    metodo = data.get('metodo', 'dinheiro')
     if not nome:
         return JsonResponse({'error': 'Nome é obrigatório'}, status=400)
 
-    card = Card.objects.create(
-        is_temporary=True,
-        nome=nome,
-        cpf=cpf,
-        telefone=telefone,
+    try:
+        valor = float(valor)
+        if valor <= 0:
+            return JsonResponse({'error': 'Valor deve ser positivo'}, status=400)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Valor inválido'}, status=400)
+
+    # Se o QR de um cartão físico foi escaneado, vincular a ele
+    card = None
+    if qr_data:
+        try:
+            card = Card.objects.get(qr_code_data=qr_data)
+            # Atualizar como temporário com dados do cliente
+            card.is_temporary = True
+            card.nome = nome
+            card.cpf = cpf
+            card.telefone = telefone
+            card.saldo += round(valor, 2)
+            card.save()
+        except Card.DoesNotExist:
+            return JsonResponse({'error': 'QR Code do cartão físico não encontrado'}, status=404)
+    else:
+        card = Card.objects.create(
+            is_temporary=True,
+            nome=nome,
+            cpf=cpf,
+            telefone=telefone,
+            saldo=round(valor, 2),
+        )
+
+    # Registrar depósito inicial
+    Transaction.objects.create(
+        card=card,
+        tipo='deposito',
+        valor=round(valor, 2),
+        metodo=metodo,
+        origem='caixa',
+        descricao=f'Recarga presencial — novo cartão para {nome}',
+        operador=request.user,
     )
+
     qr_b64 = generate_qr_base64(str(card.qr_code_data))
     return JsonResponse({
         'success': True,
@@ -181,7 +220,8 @@ def api_client_add_balance(request):
         tipo='deposito',
         valor=round(valor, 2),
         metodo=metodo,
-        descricao=f'Recarga pelo cliente via {dict(Transaction.METODO_CHOICES).get(metodo, metodo)}',
+        origem='app',
+        descricao=f'Recarga pelo app via {dict(Transaction.METODO_CHOICES).get(metodo, metodo)}',
         operador=request.user,
     )
     return JsonResponse({'success': True, 'novo_saldo': str(card.saldo)})

@@ -141,22 +141,45 @@ function closeSidebar() {
 <div id="tab-cartao" class="tab-content">
     <div class="surface-card">
         <h3>Criar Cartão Temporário</h3>
-        <form class="dash-form" onsubmit="return createTempCard(event)">
+        <div class="dash-form">
             <div class="field">
-                <label>Nome</label>
+                <label>Vincular a Cartão Físico (QR Code)</label>
+                <div style="display:flex;gap:0.5rem;">
+                    <input class="input" id="tc-qr-input" placeholder="Opcional. UUID do cartão">
+                    <button class="btn-secondary" onclick="startScanner('tc')" style="white-space:nowrap;padding:0 0.8rem;">📷 Escanear</button>
+                </div>
+            </div>
+            <div id="tc-qr-reader" style="margin-bottom:1rem;"></div>
+
+            <div class="field">
+                <label>Nome do Cliente *</label>
                 <input class="input" id="tc-nome" placeholder="Nome do cliente" required>
             </div>
             <div class="field">
-                <label>CPF</label>
+                <label>CPF (Opcional)</label>
                 <input class="input" id="tc-cpf" placeholder="000.000.000-00">
             </div>
             <div class="field">
-                <label>Telefone</label>
+                <label>Telefone (Opcional)</label>
                 <input class="input" id="tc-telefone" placeholder="(00) 00000-0000">
             </div>
-            <button type="submit" class="btn-primary">Criar Cartão</button>
-        </form>
+            <div class="field">
+                <label>Valor Inicial (R$) *</label>
+                <input class="input" id="tc-valor" type="number" step="0.01" min="0.01" placeholder="0.00" required>
+            </div>
+            <div class="field">
+                <label>Forma de Pagamento *</label>
+                <select id="tc-metodo" class="input" style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:0.6em 0.5em;font-size:0.85rem;">
+                    <option value="pix">PIX</option>
+                    <option value="credito">Cartão de Crédito</option>
+                    <option value="debito">Cartão de Débito</option>
+                    <option value="dinheiro">Dinheiro</option>
+                </select>
+            </div>
+            <button onclick="createTempCard()" class="btn-primary" style="margin-top:0.5rem;">Criar Cartão / Recarregar Físico</button>
+        </div>
         <div id="temp-card-result" style="display:none;margin-top:1.5rem;">
+            <div class="alert alert-success" style="margin-bottom:1rem;">Cartão gerado/vinculado e recarregado com sucesso!</div>
             <div class="qr-container">
                 <img id="tc-qr-img" src="" alt="QR Code">
                 <div class="qr-label" id="tc-qr-label"></div>
@@ -493,21 +516,32 @@ async function processPayment() {
 }
 
 // ===== Temp Card =====
-async function createTempCard(e) {
-    e.preventDefault();
+async function createTempCard() {
     try {
+        const payload = {
+            nome: document.getElementById('tc-nome').value,
+            cpf: document.getElementById('tc-cpf').value,
+            telefone: document.getElementById('tc-telefone').value,
+            qr_data: document.getElementById('tc-qr-input').value,
+            valor: document.getElementById('tc-valor').value,
+            metodo: document.getElementById('tc-metodo').value
+        };
         const data = await apiFetch('/api/cards/temp/create/', {
             method: 'POST',
-            body: JSON.stringify({
-                nome: document.getElementById('tc-nome').value,
-                cpf: document.getElementById('tc-cpf').value,
-                telefone: document.getElementById('tc-telefone').value,
-            })
+            body: JSON.stringify(payload)
         });
         document.getElementById('temp-card-result').style.display = 'block';
         document.getElementById('tc-qr-img').src = 'data:image/png;base64,' + data.card.qr_code_image;
         document.getElementById('tc-qr-label').textContent = `Cartão de ${data.card.nome} — ${data.card.qr_code_data}`;
-        showToast('Cartão temporário criado!');
+        
+        // Limpar form
+        document.getElementById('tc-nome').value = '';
+        document.getElementById('tc-cpf').value = '';
+        document.getElementById('tc-telefone').value = '';
+        document.getElementById('tc-qr-input').value = '';
+        document.getElementById('tc-valor').value = '';
+        
+        showToast('Cartão gerado/vinculado e recarregado!');
     } catch (e) { showToast(e.message, 'error'); }
 }
 

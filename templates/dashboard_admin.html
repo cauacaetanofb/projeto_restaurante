@@ -638,20 +638,31 @@ async function loadReport(period, btn) {
             </div>
         `;
 
-        // Payment methods
-        if (data.por_metodo && data.por_metodo.length) {
-            document.getElementById('report-metodos').innerHTML = `
-                <h3 style="color:var(--text-primary);font-size:0.9rem;margin:1rem 0 0.5rem;">💳 Recebido por Método</h3>
-                <table class="report-table">
+        // Payment methods separated by origin
+        let metodosHtml = '';
+        if (data.depositos_app && data.depositos_app.count > 0) {
+            metodosHtml += `
+                <h3 style="color:var(--text-primary);font-size:0.9rem;margin:1rem 0 0.5rem;">📱 Depósitos via App (Total: R$ ${parseFloat(data.depositos_app.total).toFixed(2)})</h3>
+                <table class="report-table" style="margin-bottom:1rem;">
                     <thead><tr><th>Método</th><th>Qtd</th><th>Total</th></tr></thead>
-                    <tbody>${data.por_metodo.map(m => `
+                    <tbody>${data.depositos_app.por_metodo.map(m => `
                         <tr><td>${m.metodo}</td><td>${m.count}</td><td style="color:var(--success);font-weight:600;">R$ ${parseFloat(m.total).toFixed(2)}</td></tr>
                     `).join('')}</tbody>
                 </table>
             `;
-        } else {
-            document.getElementById('report-metodos').innerHTML = '';
         }
+        if (data.depositos_caixa && data.depositos_caixa.count > 0) {
+            metodosHtml += `
+                <h3 style="color:var(--text-primary);font-size:0.9rem;margin:1rem 0 0.5rem;">🏪 Depósitos no Caixa (Total: R$ ${parseFloat(data.depositos_caixa.total).toFixed(2)})</h3>
+                <table class="report-table">
+                    <thead><tr><th>Método</th><th>Qtd</th><th>Total</th></tr></thead>
+                    <tbody>${data.depositos_caixa.por_metodo.map(m => `
+                        <tr><td>${m.metodo}</td><td>${m.count}</td><td style="color:var(--success);font-weight:600;">R$ ${parseFloat(m.total).toFixed(2)}</td></tr>
+                    `).join('')}</tbody>
+                </table>
+            `;
+        }
+        document.getElementById('report-metodos').innerHTML = metodosHtml;
 
         // Daily breakdown
         if (data.daily && data.daily.length) {
