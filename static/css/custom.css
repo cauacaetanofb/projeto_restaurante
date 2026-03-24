@@ -651,6 +651,27 @@ select.input,
     display: none;
 }
 
+/* ========= QR Code ========= */
+.qr-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem 0;
+}
+.qr-container img {
+    max-width: 220px;
+    width: 100%;
+    border-radius: 12px;
+}
+.qr-label {
+    margin-top: 0.6rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    word-break: break-all;
+}
+
 /* ========= Loading Spinner ========= */
 .loading {
     text-align: center;
