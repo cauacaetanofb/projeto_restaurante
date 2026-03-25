@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,12 +12,30 @@
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
     <div class="app-wrapper">
         {% block content %}{% endblock %}
+
+        <!-- GFood Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <!-- A imagem será referenciada em static/images/logo-guriri.png -->
+                <img src="{% static 'images/logo-guriri.png' %}" alt="Guriri Beach Acqua Park" class="footer-logo"
+                    onerror="this.style.display='none'">
+                <div class="footer-links">
+                    <a href="https://www.guriribeach.com/atendimento/" target="_blank">Site Oficial</a>
+                    <a href="https://www.instagram.com/guriribeachoficial/" target="_blank">Instagram</a>
+                </div>
+                <div class="footer-dev">
+                    Desenvolvido por: <a href="mailto:cauacaetanofb@gmail.com">cauacaetanofb@gmail.com</a>
+                </div>
+            </div>
+        </footer>
     </div>
     <div id="toast" class="toast"></div>
     <script src="{% static 'js/base.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>
