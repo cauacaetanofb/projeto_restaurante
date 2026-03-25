@@ -1,7 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-import json
 
 from .models import Product, Category
 
@@ -120,7 +119,4 @@ def api_delete_product(request, product_id):
         return JsonResponse({'error': 'Produto não encontrado'}, status=404)
 
 
-@login_required
-def api_list_categories(request):
-    cats = Category.objects.all().values('id', 'nome')
-    return JsonResponse({'categories': list(cats)})
+

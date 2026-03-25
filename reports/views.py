@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncDate
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
 
 from orders.models import Order, OrderItem
