@@ -867,6 +867,69 @@ select.input,
 }
 .btn-hamburger:hover { background: rgba(255,255,255,0.05); }
 
+/* ========= Install Banner (PWA) ========= */
+.install-banner {
+    padding: 0 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.btn-install {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    text-decoration: none;
+}
+
+.btn-install:hover {
+    border-color: var(--primary);
+    background: var(--bg-card);
+}
+
+.btn-install:active {
+    transform: scale(0.98);
+}
+
+.install-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-radius: 12px;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.install-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.install-text .install-title {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.2;
+}
+
+.install-text .install-sub {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    margin-top: 0.15rem;
+}
+
 /* ========= Footer ========= */
 .app-footer {
     background: var(--bg-card);

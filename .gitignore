@@ -35,3 +35,6 @@ desktop.ini
 dist/
 build/
 *.egg-info/
+
+planejamento.txt
+requirements.txt

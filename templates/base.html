@@ -5,10 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}GFood{% endblock %}</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#009fe3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     {% load static %}
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="{% static 'images/icon-192.png' %}">
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
@@ -17,10 +23,20 @@
     <div class="app-wrapper">
         {% block content %}{% endblock %}
 
+        <!-- Botão Instalar PWA -->
+        <div id="install-banner" class="install-banner">
+            <button id="btn-install" class="btn-install" onclick="installApp()">
+                <span class="install-icon">⬇️</span>
+                <div class="install-text">
+                    <span class="install-title">Instale o app no seu celular</span>
+                    <span class="install-sub">Acesse rápido direto da tela inicial</span>
+                </div>
+            </button>
+        </div>
+
         <!-- GFood Footer -->
         <footer class="app-footer">
             <div class="footer-content">
-                <!-- A imagem será referenciada em static/images/logo-guriri.png -->
                 <img src="{% static 'images/logo-guriri.png' %}" alt="Guriri Beach Acqua Park" class="footer-logo"
                     onerror="this.style.display='none'">
                 <div class="footer-links">
