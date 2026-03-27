@@ -15,6 +15,8 @@ class Card(models.Model):
     qr_code_data = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     saldo = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Saldo')
     is_temporary = models.BooleanField(default=False, verbose_name='Temporário')
+    bloqueado = models.BooleanField(default=False, verbose_name='Bloqueado')
+    motivo_bloqueio = models.CharField(max_length=255, blank=True, verbose_name='Motivo do Bloqueio')
     nome = models.CharField(max_length=200, blank=True, verbose_name='Nome')
     cpf = models.CharField(max_length=14, blank=True, verbose_name='CPF')
     telefone = models.CharField(max_length=15, blank=True, verbose_name='Telefone')

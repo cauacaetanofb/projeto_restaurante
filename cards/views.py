@@ -51,6 +51,7 @@ def api_check_balance(request):
                 'saldo': str(card.saldo),
                 'qr_code_data': str(card.qr_code_data),
                 'is_temporary': card.is_temporary,
+                'bloqueado': card.bloqueado,
             }
         })
     except Card.DoesNotExist:
@@ -74,6 +75,8 @@ def api_add_balance(request):
 
     try:
         card = Card.objects.get(qr_code_data=qr_data)
+        if card.bloqueado:
+            return JsonResponse({'error': 'Este cartão está cancelado'}, status=400)
         card.saldo += round(valor, 2)
         card.save()
         Transaction.objects.create(
@@ -154,6 +157,10 @@ def api_create_temp_card(request):
     if qr_data:
         try:
             card = Card.objects.get(qr_code_data=qr_data)
+            if card.bloqueado:
+                # Cartão cancelado: liberar para reutilização
+                card.bloqueado = False
+                card.motivo_bloqueio = ''
             # Atualizar como temporário com dados do cliente
             card.is_temporary = True
             card.nome = nome
@@ -283,4 +290,149 @@ def api_my_transactions(request):
             'data': t.criado_em.strftime('%d/%m/%Y %H:%M'),
         })
     return JsonResponse({'transactions': data, 'saldo': str(card.saldo)})
+
+
+# ===== Busca por CPF =====
+@login_required
+def api_search_by_cpf(request):
+    """Busca cartões por CPF."""
+    if request.user.user_type not in ['admin', 'caixa']:
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+    cpf = request.GET.get('cpf', '').strip()
+    if not cpf:
+        return JsonResponse({'error': 'CPF é obrigatório'}, status=400)
+
+    cards = Card.objects.filter(cpf=cpf)
+    if not cards.exists():
+        return JsonResponse({'error': 'Nenhum cartão encontrado com esse CPF'}, status=404)
+
+    result = []
+    for card in cards:
+        nome = card.nome if card.is_temporary else (card.user.get_full_name() if card.user else 'N/A')
+        result.append({
+            'id': card.id,
+            'nome': nome,
+            'cpf': card.cpf,
+            'saldo': str(card.saldo),
+            'qr_code_data': str(card.qr_code_data),
+            'is_temporary': card.is_temporary,
+            'bloqueado': card.bloqueado,
+            'motivo_bloqueio': card.motivo_bloqueio,
+        })
+    return JsonResponse({'cards': result})
+
+
+# ===== Bloquear / Cancelar Cartão =====
+@login_required
+@require_POST
+def api_block_card(request):
+    """Bloqueia/cancela um cartão e libera o QR físico para reutilização."""
+    if request.user.user_type not in ['admin', 'caixa']:
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+    data = json.loads(request.body)
+    card_id = data.get('card_id')
+    motivo = data.get('motivo', 'Cancelado pelo caixa')
+
+    try:
+        card = Card.objects.get(id=card_id)
+    except Card.DoesNotExist:
+        return JsonResponse({'error': 'Cartão não encontrado'}, status=404)
+
+    if card.bloqueado:
+        return JsonResponse({'error': 'Este cartão já está cancelado'}, status=400)
+
+    # Registrar transação de retirada se houver saldo restante
+    saldo_restante = float(card.saldo)
+    if saldo_restante > 0:
+        Transaction.objects.create(
+            card=card,
+            tipo='retirada',
+            valor=round(saldo_restante, 2),
+            metodo='outro',
+            descricao=f'Saldo zerado por cancelamento — {motivo}',
+            operador=request.user,
+        )
+
+    # Bloquear e limpar dados do cartão (libera para reutilização)
+    card.bloqueado = True
+    card.motivo_bloqueio = motivo
+    card.saldo = 0
+    card.nome = ''
+    card.cpf = ''
+    card.telefone = ''
+    card.is_temporary = False
+    card.user = None
+    card.save()
+
+    return JsonResponse({'success': True, 'message': 'Cartão cancelado e liberado para reutilização'})
+
+
+# ===== Transferir Saldo =====
+@login_required
+@require_POST
+def api_transfer_balance(request):
+    """Transfere saldo de um cartão para outro."""
+    if request.user.user_type not in ['admin', 'caixa']:
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+    data = json.loads(request.body)
+    from_card_id = data.get('from_card_id')
+    to_qr_data = data.get('to_qr_data', '').strip()
+
+    if not from_card_id or not to_qr_data:
+        return JsonResponse({'error': 'Dados incompletos'}, status=400)
+
+    try:
+        from_card = Card.objects.get(id=from_card_id)
+    except Card.DoesNotExist:
+        return JsonResponse({'error': 'Cartão de origem não encontrado'}, status=404)
+
+    try:
+        to_card = Card.objects.get(qr_code_data=to_qr_data)
+    except Card.DoesNotExist:
+        return JsonResponse({'error': 'Cartão de destino não encontrado'}, status=404)
+
+    if to_card.bloqueado:
+        return JsonResponse({'error': 'O cartão de destino está cancelado'}, status=400)
+
+    if from_card.id == to_card.id:
+        return JsonResponse({'error': 'Não é possível transferir para o mesmo cartão'}, status=400)
+
+    saldo = float(from_card.saldo)
+    if saldo <= 0:
+        return JsonResponse({'error': 'O cartão de origem não tem saldo'}, status=400)
+
+    # Transferir
+    from_card.saldo = 0
+    from_card.save()
+    to_card.saldo += round(saldo, 2)
+    to_card.save()
+
+    # Registrar transações
+    to_nome = to_card.nome if to_card.is_temporary else (to_card.user.get_full_name() if to_card.user else 'N/A')
+    from_nome = from_card.nome or 'Cartão sem nome'
+
+    Transaction.objects.create(
+        card=from_card,
+        tipo='retirada',
+        valor=round(saldo, 2),
+        metodo='outro',
+        descricao=f'Transferência para cartão de {to_nome}',
+        operador=request.user,
+    )
+    Transaction.objects.create(
+        card=to_card,
+        tipo='deposito',
+        valor=round(saldo, 2),
+        metodo='outro',
+        origem='caixa',
+        descricao=f'Transferência recebida do cartão de {from_nome}',
+        operador=request.user,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'valor_transferido': str(round(saldo, 2)),
+        'novo_saldo_destino': str(to_card.saldo),
+    })
+
 

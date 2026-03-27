@@ -56,6 +56,7 @@ function closeSidebar() {
 <div id="tabs-caixa" class="tabs-nav">
     <button class="tab-btn active" data-tab="cartao" onclick="switchTab('cartao', this)">🆕 Cartão</button>
     <button class="tab-btn" data-tab="saldo" onclick="switchTab('saldo', this)">💰 Saldo</button>
+    <button class="tab-btn" data-tab="gerenciar" onclick="switchTab('gerenciar', this)">🔒 Cartões</button>
     <button class="tab-btn" data-tab="relatorio" onclick="switchTab('relatorio', this)">📊 Relatório</button>
 </div>
 
@@ -252,8 +253,47 @@ function closeSidebar() {
     </div>
 </div>
 
+<!-- Tab: Gerenciar Cartões (caixa only) -->
+<div id="tab-gerenciar" class="tab-content">
+    <div class="surface-card">
+        <h3>Gerenciar Cartões</h3>
+        <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:1rem;">Busque pelo CPF do cliente para visualizar, transferir saldo ou cancelar o cartão.</p>
+        <div class="dash-form">
+            <div class="field">
+                <label>CPF do Cliente</label>
+                <input class="input" id="gc-cpf" placeholder="000.000.000-00">
+            </div>
+            <button class="btn-primary" onclick="buscarCartoesCPF()" style="width:100%;margin-bottom:1rem;">🔍 Buscar Cartões</button>
+        </div>
+        <div id="gc-results"></div>
+    </div>
+
+    <!-- Painel de Transferência (aparece ao clicar Transferir) -->
+    <div id="gc-transfer-panel" style="display:none;margin-top:0.8rem;">
+        <div class="surface-card">
+            <h3>Transferir Saldo</h3>
+            <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:0.5rem;">
+                De: <strong id="gc-transfer-from-name">—</strong> (R$ <span id="gc-transfer-from-saldo">0,00</span>)
+            </p>
+            <div class="dash-form">
+                <div class="field">
+                    <label>Cartão de Destino (QR Code)</label>
+                    <input class="input" id="gc-transfer-to-qr" placeholder="UUID do cartão destino">
+                </div>
+                <button class="btn-secondary" onclick="startScanner('gctransfer')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Destino</button>
+                <div id="gctransfer-qr-reader" style="margin-bottom:1rem;"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="btn-success" onclick="confirmarTransferencia()" style="flex:1;">✅ Confirmar Transferência</button>
+                    <button class="btn-secondary" onclick="cancelarTransferencia()" style="flex:1;">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Tab: Relatório (caixa only) -->
 <div id="tab-relatorio" class="tab-content">
+
     <div class="surface-card">
         <h3>📊 Relatório do Dia</h3>
         <div id="report-loading" class="loading"><div class="spinner"></div></div>

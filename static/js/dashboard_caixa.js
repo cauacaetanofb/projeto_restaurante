@@ -186,7 +186,10 @@ function renderPaySummary() {
 // ===== QR Scanner =====
 function startScanner(prefix) {
     const readerId = prefix + '-qr-reader';
-    const inputId = prefix + '-qr-input';
+    // Mapear prefixo para o ID do input correto
+    let inputId = prefix + '-qr-input';
+    if (prefix === 'gctransfer') inputId = 'gc-transfer-to-qr';
+
     const reader = document.getElementById(readerId);
     if (activeScanner) {
         activeScanner.stop().then(() => { activeScanner = null; reader.innerHTML = ''; });
@@ -369,6 +372,113 @@ async function loadDailyReport() {
         }
     } catch (e) {
         document.getElementById('report-loading').style.display = 'none';
+        showToast(e.message, 'error');
+    }
+}
+
+// ===== Gerenciar Cartões (Busca CPF, Transferência, Bloqueio) =====
+let transferFromCardId = null;
+
+async function buscarCartoesCPF() {
+    const cpf = document.getElementById('gc-cpf').value.trim();
+    if (!cpf) { showToast('Digite o CPF do cliente', 'error'); return; }
+    const resultsDiv = document.getElementById('gc-results');
+    resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    document.getElementById('gc-transfer-panel').style.display = 'none';
+    try {
+        const data = await apiFetch('/api/cards/search-cpf/?cpf=' + encodeURIComponent(cpf));
+        if (!data.cards || data.cards.length === 0) {
+            resultsDiv.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Nenhum cartão encontrado</p></div>';
+            return;
+        }
+        let html = '';
+        data.cards.forEach(function(card) {
+            const tipo = card.is_temporary ? '🏷️ Temporário' : '📱 Cliente App';
+            const status = card.bloqueado
+                ? '<span style="color:var(--danger);font-weight:600;">❌ Cancelado</span>'
+                : '<span style="color:var(--success);font-weight:600;">✅ Ativo</span>';
+            const saldo = parseFloat(card.saldo).toFixed(2);
+
+            html += '<div class="surface-card" style="background:var(--bg-dark);margin-bottom:0.6rem;padding:0.8rem;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">';
+            html += '<div>';
+            html += '<div style="color:var(--text-primary);font-weight:600;">' + card.nome + '</div>';
+            html += '<div style="color:var(--text-secondary);font-size:0.75rem;">' + tipo + ' • CPF: ' + card.cpf + '</div>';
+            html += '</div>';
+            html += '<div style="text-align:right;">';
+            html += '<div style="color:var(--success);font-weight:700;font-size:1.1rem;">R$ ' + saldo + '</div>';
+            html += '<div style="font-size:0.75rem;">' + status + '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            if (!card.bloqueado) {
+                html += '<div style="display:flex;gap:0.4rem;margin-top:0.5rem;">';
+                if (parseFloat(card.saldo) > 0) {
+                    html += '<button class="btn-secondary" onclick="iniciarTransferencia(' + card.id + ', \'' + card.nome.replace(/'/g, "\\'") + '\', \'' + saldo + '\')" style="flex:1;font-size:0.78rem;padding:0.4rem;">🔄 Transferir</button>';
+                }
+                html += '<button class="btn-danger" onclick="bloquearCartao(' + card.id + ', \'' + card.nome.replace(/'/g, "\\'") + '\')" style="flex:1;font-size:0.78rem;padding:0.4rem;">🚫 Cancelar</button>';
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+        resultsDiv.innerHTML = html;
+    } catch (e) {
+        resultsDiv.innerHTML = '';
+        showToast(e.message, 'error');
+    }
+}
+
+function iniciarTransferencia(cardId, nome, saldo) {
+    transferFromCardId = cardId;
+    document.getElementById('gc-transfer-from-name').textContent = nome;
+    document.getElementById('gc-transfer-from-saldo').textContent = saldo;
+    document.getElementById('gc-transfer-to-qr').value = '';
+    document.getElementById('gc-transfer-panel').style.display = 'block';
+}
+
+function cancelarTransferencia() {
+    transferFromCardId = null;
+    document.getElementById('gc-transfer-panel').style.display = 'none';
+    if (activeScanner) {
+        activeScanner.stop().then(function() {
+            activeScanner = null;
+            document.getElementById('gctransfer-qr-reader').innerHTML = '';
+        }).catch(function(){});
+    }
+}
+
+async function confirmarTransferencia() {
+    const toQr = document.getElementById('gc-transfer-to-qr').value.trim();
+    if (!transferFromCardId || !toQr) {
+        showToast('Escaneie ou digite o QR do cartão destino', 'error');
+        return;
+    }
+    try {
+        const data = await apiFetch('/api/cards/transfer/', {
+            method: 'POST',
+            body: JSON.stringify({ from_card_id: transferFromCardId, to_qr_data: toQr })
+        });
+        showToast('Saldo de R$ ' + data.valor_transferido + ' transferido com sucesso!');
+        cancelarTransferencia();
+        buscarCartoesCPF(); // Recarrega a lista
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function bloquearCartao(cardId, nome) {
+    if (!confirm('Tem certeza que deseja CANCELAR o cartão de ' + nome + '?\n\nO cartão será zerado e liberado para reutilização.\nEssa ação não pode ser desfeita.')) {
+        return;
+    }
+    const motivo = prompt('Motivo do cancelamento (opcional):', 'Devolução / perda do cartão') || 'Cancelado pelo caixa';
+    try {
+        await apiFetch('/api/cards/block/', {
+            method: 'POST',
+            body: JSON.stringify({ card_id: cardId, motivo: motivo })
+        });
+        showToast('Cartão cancelado e liberado para reutilização!');
+        buscarCartoesCPF(); // Recarrega a lista
+    } catch (e) {
         showToast(e.message, 'error');
     }
 }
