@@ -29,14 +29,14 @@
     </a>
 </div>
 <script>
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebar-overlay').classList.toggle('active');
-}
-function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('active');
-}
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebar-overlay').classList.toggle('active');
+    }
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebar-overlay').classList.remove('active');
+    }
 </script>
 {% endif %}
 
@@ -63,16 +63,18 @@ function closeSidebar() {
 <!-- ====== BALCAO MODE TABS ====== -->
 <div id="tabs-balcao" class="tabs-nav" style="display:none;">
     <button class="tab-btn active" data-tab="cardapio" onclick="switchTab('cardapio', this)">🍕 Cardápio</button>
-    <button class="tab-btn" data-tab="carrinho" onclick="switchTab('carrinho', this)">🛒 Carrinho <span id="cart-badge-b"></span></button>
+    <button class="tab-btn" data-tab="carrinho" onclick="switchTab('carrinho', this)">🛒 Carrinho <span
+            id="cart-badge-b"></span></button>
     <button class="tab-btn" data-tab="pagamento" onclick="switchTab('pagamento', this)">💳 Pagar</button>
     <button class="tab-btn" data-tab="consultar-saldo" onclick="switchTab('consultar-saldo', this)">💰 Saldo</button>
 </div>
 
 <!-- Tab: Cardápio (shared) -->
-<div id="tab-cardapio" class="tab-content active">
+<div id="tab-cardapio" class="tab-content">
     <div class="surface-card">
         <h3>Cardápio</h3>
-        <div id="cat-filter" style="display:flex;gap:0.4rem;overflow-x:auto;padding-bottom:0.6rem;margin-bottom:0.8rem;scrollbar-width:none;-ms-overflow-style:none;">
+        <div id="cat-filter"
+            style="display:flex;gap:0.4rem;overflow-x:auto;padding-bottom:0.6rem;margin-bottom:0.8rem;scrollbar-width:none;-ms-overflow-style:none;">
             <button class="period-btn active" onclick="filterByCat('', this)">Todos</button>
             <button class="period-btn" onclick="filterByCat('Bebidas', this)">Bebidas</button>
             <button class="period-btn" onclick="filterByCat('Cervejas', this)">Cervejas</button>
@@ -84,7 +86,9 @@ function closeSidebar() {
             <button class="period-btn" onclick="filterByCat('Salgados', this)">Salgados</button>
         </div>
         <div id="menu-list">
-            <div class="loading"><div class="spinner"></div></div>
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -94,7 +98,10 @@ function closeSidebar() {
     <div class="surface-card">
         <h3>Carrinho</h3>
         <div id="cart-items">
-            <div class="empty-state"><div class="icon">🛒</div><p>Carrinho vazio</p></div>
+            <div class="empty-state">
+                <div class="icon">🛒</div>
+                <p>Carrinho vazio</p>
+            </div>
         </div>
         <div id="cart-total-section" style="display:none;">
             <div class="cart-total">
@@ -115,7 +122,8 @@ function closeSidebar() {
                 <label>Código do Cartão</label>
                 <input class="input" id="pay-qr-input" placeholder="UUID do cartão">
             </div>
-            <button class="btn-secondary" onclick="startScanner('pay')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
+            <button class="btn-secondary" onclick="startScanner('pay')" style="margin-bottom:1rem;width:100%;">📷
+                Escanear QR Code</button>
             <div id="pay-qr-reader" style="margin-bottom:1rem;"></div>
         </div>
         <div id="pay-card-info" style="display:none;margin-bottom:1rem;">
@@ -126,7 +134,8 @@ function closeSidebar() {
                         <div style="color:var(--text-secondary);font-size:0.8rem;" id="pay-client-type">—</div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="color:var(--success);font-weight:700;font-size:1.1rem;" id="pay-client-saldo">R$ 0,00</div>
+                        <div style="color:var(--success);font-weight:700;font-size:1.1rem;" id="pay-client-saldo">R$
+                            0,00</div>
                         <div style="color:var(--text-secondary);font-size:0.75rem;">Saldo</div>
                     </div>
                 </div>
@@ -148,7 +157,8 @@ function closeSidebar() {
                 <label>Vincular a Cartão Físico (QR Code)</label>
                 <div style="display:flex;gap:0.5rem;">
                     <input class="input" id="tc-qr-input" placeholder="Opcional. UUID do cartão">
-                    <button class="btn-secondary" onclick="startScanner('tc')" style="white-space:nowrap;padding:0 0.8rem;">📷 Escanear</button>
+                    <button class="btn-secondary" onclick="startScanner('tc')"
+                        style="white-space:nowrap;padding:0 0.8rem;">📷 Escanear</button>
                 </div>
             </div>
             <div id="tc-qr-reader" style="margin-bottom:1rem;"></div>
@@ -171,17 +181,20 @@ function closeSidebar() {
             </div>
             <div class="field">
                 <label>Forma de Pagamento *</label>
-                <select id="tc-metodo" class="input" style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:0.6em 0.5em;font-size:0.85rem;">
+                <select id="tc-metodo" class="input"
+                    style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:0.6em 0.5em;font-size:0.85rem;">
                     <option value="pix">PIX</option>
                     <option value="credito">Cartão de Crédito</option>
                     <option value="debito">Cartão de Débito</option>
                     <option value="dinheiro">Dinheiro</option>
                 </select>
             </div>
-            <button onclick="createTempCard()" class="btn-primary" style="margin-top:0.5rem;">Criar Cartão / Recarregar Físico</button>
+            <button onclick="createTempCard()" class="btn-primary" style="margin-top:0.5rem;">Criar Cartão / Recarregar
+                Físico</button>
         </div>
         <div id="temp-card-result" style="display:none;margin-top:1.5rem;">
-            <div class="alert alert-success" style="margin-bottom:1rem;">Cartão gerado/vinculado e recarregado com sucesso!</div>
+            <div class="alert alert-success" style="margin-bottom:1rem;">Cartão gerado/vinculado e recarregado com
+                sucesso!</div>
             <div class="qr-container">
                 <img id="tc-qr-img" src="" alt="QR Code">
                 <div class="qr-label" id="tc-qr-label"></div>
@@ -199,9 +212,11 @@ function closeSidebar() {
                 <label>Código do Cartão</label>
                 <input class="input" id="saldo-qr-input" placeholder="UUID do cartão">
             </div>
-            <button class="btn-secondary" onclick="startScanner('saldo')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
+            <button class="btn-secondary" onclick="startScanner('saldo')" style="margin-bottom:1rem;width:100%;">📷
+                Escanear QR Code</button>
             <div id="saldo-qr-reader" style="margin-bottom:1rem;"></div>
-            <button class="btn-secondary" onclick="consultarSaldo()" style="width:100%;margin-bottom:1rem;">🔍 Consultar Saldo</button>
+            <button class="btn-secondary" onclick="consultarSaldo()" style="width:100%;margin-bottom:1rem;">🔍 Consultar
+                Saldo</button>
         </div>
         <div id="saldo-card-info" style="display:none;">
             <div class="balance-display">
@@ -215,7 +230,8 @@ function closeSidebar() {
                 </div>
                 <div class="field">
                     <label>Forma de Pagamento</label>
-                    <select id="saldo-metodo" class="input" style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:0.6em 0.5em;font-size:0.85rem;">
+                    <select id="saldo-metodo" class="input"
+                        style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:10px;padding:0.6em 0.5em;font-size:0.85rem;">
                         <option value="pix">PIX</option>
                         <option value="credito">Cartão de Crédito</option>
                         <option value="debito">Cartão de Débito</option>
@@ -240,9 +256,11 @@ function closeSidebar() {
                 <label>Código do Cartão</label>
                 <input class="input" id="csaldo-qr-input" placeholder="UUID do cartão">
             </div>
-            <button class="btn-secondary" onclick="startScanner('csaldo')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
+            <button class="btn-secondary" onclick="startScanner('csaldo')" style="margin-bottom:1rem;width:100%;">📷
+                Escanear QR Code</button>
             <div id="csaldo-qr-reader" style="margin-bottom:1rem;"></div>
-            <button class="btn-secondary" onclick="consultarSaldoBalcao()" style="width:100%;margin-bottom:1rem;">🔍 Consultar Saldo</button>
+            <button class="btn-secondary" onclick="consultarSaldoBalcao()" style="width:100%;margin-bottom:1rem;">🔍
+                Consultar Saldo</button>
         </div>
         <div id="csaldo-card-info" style="display:none;">
             <div class="balance-display">
@@ -257,13 +275,15 @@ function closeSidebar() {
 <div id="tab-gerenciar" class="tab-content">
     <div class="surface-card">
         <h3>Gerenciar Cartões</h3>
-        <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:1rem;">Busque pelo CPF do cliente para visualizar, transferir saldo ou cancelar o cartão.</p>
+        <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:1rem;">Busque pelo CPF do cliente para
+            visualizar, transferir saldo ou cancelar o cartão.</p>
         <div class="dash-form">
             <div class="field">
                 <label>CPF do Cliente</label>
                 <input class="input" id="gc-cpf" placeholder="000.000.000-00">
             </div>
-            <button class="btn-primary" onclick="buscarCartoesCPF()" style="width:100%;margin-bottom:1rem;">🔍 Buscar Cartões</button>
+            <button class="btn-primary" onclick="buscarCartoesCPF()" style="width:100%;margin-bottom:1rem;">🔍 Buscar
+                Cartões</button>
         </div>
         <div id="gc-results"></div>
     </div>
@@ -280,10 +300,12 @@ function closeSidebar() {
                     <label>Cartão de Destino (QR Code)</label>
                     <input class="input" id="gc-transfer-to-qr" placeholder="UUID do cartão destino">
                 </div>
-                <button class="btn-secondary" onclick="startScanner('gctransfer')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Destino</button>
+                <button class="btn-secondary" onclick="startScanner('gctransfer')"
+                    style="margin-bottom:1rem;width:100%;">📷 Escanear QR Destino</button>
                 <div id="gctransfer-qr-reader" style="margin-bottom:1rem;"></div>
                 <div style="display:flex;gap:0.5rem;">
-                    <button class="btn-success" onclick="confirmarTransferencia()" style="flex:1;">✅ Confirmar Transferência</button>
+                    <button class="btn-success" onclick="confirmarTransferencia()" style="flex:1;">✅ Confirmar
+                        Transferência</button>
                     <button class="btn-secondary" onclick="cancelarTransferencia()" style="flex:1;">Cancelar</button>
                 </div>
             </div>
@@ -296,7 +318,9 @@ function closeSidebar() {
 
     <div class="surface-card">
         <h3>📊 Relatório do Dia</h3>
-        <div id="report-loading" class="loading"><div class="spinner"></div></div>
+        <div id="report-loading" class="loading">
+            <div class="spinner"></div>
+        </div>
         <div id="report-content" style="display:none;">
             <div id="report-summary"></div>
             <div id="report-metodos" style="margin-top:1rem;"></div>

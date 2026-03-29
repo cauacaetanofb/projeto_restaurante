@@ -16,14 +16,16 @@ function closeSidebar() {
 // ===== Mode Switching =====
 function switchMode(mode) {
     currentMode = mode;
-    closeSidebar();
+    if (typeof closeSidebar === 'function') try { closeSidebar(); } catch(e) {}
 
     // Update sidebar active
     document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-    document.getElementById('nav-' + mode).classList.add('active');
+    var navEl = document.getElementById('nav-' + mode);
+    if (navEl) navEl.classList.add('active');
 
     // Update mode badge
-    document.getElementById('mode-label').textContent = mode.toUpperCase();
+    var modeLabel = document.getElementById('mode-label');
+    if (modeLabel) modeLabel.textContent = mode.toUpperCase();
 
     // Show correct tabs
     document.getElementById('tabs-caixa').style.display = mode === 'caixa' ? 'flex' : 'none';
@@ -484,4 +486,5 @@ async function bloquearCartao(cardId, nome) {
 }
 
 // Init
+switchMode(currentMode);
 loadMenu();
