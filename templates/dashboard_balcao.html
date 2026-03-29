@@ -24,7 +24,6 @@
 <div class="tabs-nav">
     <button class="tab-btn active" onclick="switchTab('cardapio')">🍕 Cardápio</button>
     <button class="tab-btn" onclick="switchTab('carrinho')">🛒 Carrinho <span id="cart-badge"></span></button>
-    <button class="tab-btn" onclick="switchTab('pagamento')">💳 Pagar</button>
     <button class="tab-btn" onclick="switchTab('saldo')">💰 Saldo</button>
 </div>
 
@@ -61,45 +60,37 @@
                 <span>Total</span>
                 <span class="value" id="cart-total-value">R$ 0,00</span>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Tab: Pagamento -->
-<div id="tab-pagamento" class="tab-content">
-    <div class="surface-card">
-        <h3>Pagamento</h3>
-        <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">Escaneie o QR Code do cliente ou digite o código.</p>
-
-        <div class="dash-form">
-            <div class="field">
-                <label>Código do Cartão</label>
-                <input class="input" id="pay-qr-input" placeholder="UUID do cartão">
-            </div>
-            <button class="btn-secondary" onclick="startScanner('pay')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
-            <div id="pay-qr-reader" style="margin-bottom:1rem;"></div>
-        </div>
-
-        <div id="pay-card-info" style="display:none;margin-bottom:1rem;">
-            <div class="surface-card" style="background:var(--bg-dark);">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                        <div style="color:var(--text-primary);font-weight:600;" id="pay-client-name">—</div>
-                        <div style="color:var(--text-secondary);font-size:0.8rem;" id="pay-client-type">—</div>
+            <!-- Pagamento integrado ao carrinho -->
+            <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:0.8rem;">Escaneie o QR Code do cliente para pagar.</p>
+                <div class="dash-form">
+                    <div class="field">
+                        <label>Código do Cartão</label>
+                        <input class="input" id="pay-qr-input" placeholder="UUID do cartão">
                     </div>
-                    <div style="text-align:right;">
-                        <div style="color:var(--success);font-weight:700;font-size:1.1rem;" id="pay-client-saldo">R$ 0,00</div>
-                        <div style="color:var(--text-secondary);font-size:0.75rem;">Saldo</div>
+                    <button class="btn-secondary" onclick="startScanner('pay')" style="margin-bottom:1rem;width:100%;">📷 Escanear QR Code</button>
+                    <div id="pay-qr-reader" style="margin-bottom:1rem;"></div>
+                </div>
+                <div id="pay-card-info" style="display:none;margin-bottom:1rem;">
+                    <div class="surface-card" style="background:var(--bg-dark);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div style="color:var(--text-primary);font-weight:600;" id="pay-client-name">—</div>
+                                <div style="color:var(--text-secondary);font-size:0.8rem;" id="pay-client-type">—</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="color:var(--success);font-weight:700;font-size:1.1rem;" id="pay-client-saldo">R$ 0,00</div>
+                                <div style="color:var(--text-secondary);font-size:0.75rem;">Saldo</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <button class="btn-primary" onclick="processPayment()" id="btn-pay" style="display:none;width:100%;">
+                    💳 Confirmar Pagamento
+                </button>
             </div>
         </div>
-
-        <div id="pay-cart-summary"></div>
-
-        <button class="btn-primary" onclick="processPayment()" id="btn-pay" style="display:none;margin-top:1rem;">
-            Confirmar Pagamento
-        </button>
     </div>
 </div>
 
