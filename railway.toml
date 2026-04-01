@@ -2,4 +2,5 @@
 buildCommand = "pip install -r requirements.txt && python manage.py collectstatic --noinput"
 
 [deploy]
-startCommand = "python manage.py migrate && python manage.py create_superuser_auto && gunicorn gfood.wsgi --bind 0.0.0.0:${PORT:-8000}"
+preDeployCommand = "python manage.py migrate && python manage.py create_superuser_auto"
+startCommand = "gunicorn gfood.wsgi --bind 0.0.0.0:${PORT:-8000}"
