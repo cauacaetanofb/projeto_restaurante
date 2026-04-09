@@ -5,10 +5,10 @@ from .models import User
 
 class LoginForm(forms.Form):
     username = forms.CharField(
-        label='Usuário',
+        label='E-mail',
         widget=forms.TextInput(attrs={
             'class': 'input',
-            'placeholder': 'Seu usuário'
+            'placeholder': 'Seu e-mail'
         })
     )
     password = forms.CharField(
@@ -49,13 +49,7 @@ class ClienteRegisterForm(UserCreationForm):
             'placeholder': 'seu@email.com'
         })
     )
-    username = forms.CharField(
-        label='Usuário',
-        widget=forms.TextInput(attrs={
-            'class': 'input',
-            'placeholder': 'Escolha um nome de usuário'
-        })
-    )
+
     password1 = forms.CharField(
         label='Senha',
         widget=forms.PasswordInput(attrs={
@@ -73,11 +67,12 @@ class ClienteRegisterForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'username', 'email', 'cpf', 'telefone', 'password1', 'password2']
+        fields = ['first_name', 'email', 'cpf', 'telefone', 'password1', 'password2']
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.user_type = 'cliente'
+        user.username = user.email  # Usa o e-mail como username
         if commit:
             user.save()
         return user

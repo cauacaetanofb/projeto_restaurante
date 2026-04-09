@@ -15,10 +15,9 @@ class EmailOrUsernameBackend(ModelBackend):
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
-            # Tenta por email
-            try:
-                user = User.objects.get(email__iexact=username)
-            except User.DoesNotExist:
+            # Tenta por email (usa filter para evitar erro com duplicatas)
+            user = User.objects.filter(email__iexact=username).first()
+            if user is None:
                 return None
 
         if user.check_password(password) and self.user_can_authenticate(user):
