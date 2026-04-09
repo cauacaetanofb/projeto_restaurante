@@ -8,7 +8,7 @@ function switchTab(name) {
     if (name === 'produtos') loadProducts();
     if (name === 'usuarios') loadStaff();
     if (name === 'clientes') loadClients();
-    if (name === 'relatorios') loadReport('today');
+    if (name === 'relatorios') { loadReport('today'); loadAllTransactions(); }
 }
 
 // ===== Modal =====
@@ -454,5 +454,69 @@ async function saveProfile(e) {
     } catch (e) { showToast(e.message, 'error'); }
 }
 
+// ===== All Transactions =====
+let txnDebounce = null;
+
+async function loadAllTransactions() {
+    clearTimeout(txnDebounce);
+    txnDebounce = setTimeout(async () => {
+        const date = document.getElementById('txn-date-filter').value;
+        const search = document.getElementById('txn-search').value.trim();
+        const container = document.getElementById('all-transactions-list');
+        container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+        try {
+            const params = new URLSearchParams();
+            if (date) params.append('date', date);
+            if (search) params.append('search', search);
+            const data = await apiFetch(`/api/reports/transactions/?${params}`);
+
+            if (!data.transactions.length) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">🧾</div><p>Nenhuma transação encontrada</p></div>';
+                return;
+            }
+
+            container.innerHTML = data.transactions.map(t => {
+                const produtosHtml = t.produtos.length
+                    ? `<div style="margin-top:0.4rem;padding:0.4rem 0.6rem;background:var(--bg-dark);border-radius:8px;">
+                        ${t.produtos.map(p => `<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:0.15rem 0;">
+                            <span style="color:var(--text-primary);">${p.quantidade}x ${p.nome}</span>
+                            <span style="color:var(--text-secondary);">R$ ${parseFloat(p.subtotal).toFixed(2)}</span>
+                        </div>`).join('')}
+                       </div>`
+                    : '';
+
+                return `
+                <div style="padding:0.8rem 0;border-bottom:1px solid var(--border);">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="color:var(--text-primary);font-weight:700;font-size:0.9rem;">
+                                🛒 Transação #${t.id}
+                            </div>
+                            <div style="color:var(--text-secondary);font-size:0.78rem;margin-top:0.2rem;">
+                                👤 Vendedor: <span style="color:var(--text-primary);font-weight:600;">${t.vendedor}</span>
+                            </div>
+                            <div style="color:var(--text-secondary);font-size:0.78rem;">
+                                🧑 Cliente: <span style="color:var(--text-primary);">${t.nome_cliente || '—'}</span>
+                                ${t.cpf_cliente ? ` • CPF: <span style="color:var(--text-primary);">${t.cpf_cliente}</span>` : ''}
+                            </div>
+                            <div style="color:var(--text-secondary);font-size:0.75rem;">
+                                📅 ${t.data}
+                            </div>
+                        </div>
+                        <div style="color:var(--success);font-weight:800;font-size:1rem;white-space:nowrap;margin-left:0.5rem;">
+                            R$ ${parseFloat(t.valor).toFixed(2)}
+                        </div>
+                    </div>
+                    ${produtosHtml}
+                </div>`;
+            }).join('');
+        } catch (e) {
+            container.innerHTML = `<div class="empty-state"><p style="color:var(--danger);">${e.message}</p></div>`;
+        }
+    }, 300);
+}
+
 // Init
+document.getElementById('txn-date-filter').value = new Date().toISOString().slice(0, 10);
 loadProducts();

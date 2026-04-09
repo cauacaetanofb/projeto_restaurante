@@ -211,3 +211,76 @@ def api_caixa_daily_report(request):
         ],
     })
 
+
+@login_required
+def api_all_transactions(request):
+    """Lista todas as transações de pagamento com filtros de data e busca."""
+    if request.user.user_type != 'admin':
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+
+    from django.db.models import Q
+
+    date_str = request.GET.get('date', '')
+    search = request.GET.get('search', '').strip()
+
+    # Filtrar por data
+    if date_str:
+        try:
+            from datetime import datetime
+            day = datetime.strptime(date_str, '%Y-%m-%d')
+            start = timezone.make_aware(day.replace(hour=0, minute=0, second=0))
+            end = timezone.make_aware(day.replace(hour=23, minute=59, second=59))
+            txns = Transaction.objects.filter(tipo='pagamento', criado_em__range=(start, end))
+        except ValueError:
+            txns = Transaction.objects.filter(tipo='pagamento')
+    else:
+        now = timezone.now()
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        txns = Transaction.objects.filter(tipo='pagamento', criado_em__gte=start)
+
+    # Filtrar por busca (CPF ou nome do vendedor)
+    if search:
+        txns = txns.filter(
+            Q(cpf_cliente__icontains=search) |
+            Q(operador__first_name__icontains=search) |
+            Q(operador__username__icontains=search)
+        )
+
+    txns = txns.select_related('operador', 'order', 'card').order_by('-criado_em')[:100]
+
+    metodo_labels = dict(Transaction.METODO_CHOICES)
+    result = []
+    for t in txns:
+        # Buscar produtos do pedido
+        produtos = []
+        if t.order:
+            items = OrderItem.objects.filter(order=t.order).select_related('product')
+            for item in items:
+                produtos.append({
+                    'nome': item.product.nome if item.product else 'Produto removido',
+                    'quantidade': item.quantidade,
+                    'preco_unitario': str(item.preco_unitario),
+                    'subtotal': str(item.subtotal),
+                })
+
+        # Nome do cliente
+        nome_cliente = ''
+        if t.card:
+            if t.card.is_temporary:
+                nome_cliente = t.card.nome
+            elif t.card.user:
+                nome_cliente = t.card.user.get_full_name() or t.card.user.username
+
+        result.append({
+            'id': t.id,
+            'valor': str(t.valor),
+            'metodo': metodo_labels.get(t.metodo, t.metodo),
+            'cpf_cliente': t.cpf_cliente or '',
+            'nome_cliente': nome_cliente,
+            'vendedor': t.operador.get_full_name() or t.operador.username if t.operador else '—',
+            'data': t.criado_em.strftime('%d/%m/%Y %H:%M'),
+            'descricao': t.descricao,
+            'produtos': produtos,
+        })
+
+    return JsonResponse({'transactions': result})
