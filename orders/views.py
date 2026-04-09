@@ -68,11 +68,13 @@ def api_create_order(request):
 
     # Registra transação
     nomes = ', '.join([f'{qtd}x {p.nome}' for p, qtd, _ in order_items])
+    cpf = card.cpf or (card.user.cpf if card.user else '')
     Transaction.objects.create(
         card=card,
         tipo='pagamento',
         valor=total,
         metodo='saldo',
+        cpf_cliente=cpf,
         descricao=f'Pedido #{order.id}: {nomes}',
         operador=request.user,
         order=order,

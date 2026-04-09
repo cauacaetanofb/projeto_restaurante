@@ -56,6 +56,7 @@ class Transaction(models.Model):
     valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Valor')
     metodo = models.CharField(max_length=10, choices=METODO_CHOICES, default='dinheiro', verbose_name='Método')
     origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES, default='app', verbose_name='Origem')
+    cpf_cliente = models.CharField(max_length=14, blank=True, verbose_name='CPF do Cliente')
     descricao = models.CharField(max_length=255, blank=True, verbose_name='Descrição')
     operador = models.ForeignKey(
         settings.AUTH_USER_MODEL,
