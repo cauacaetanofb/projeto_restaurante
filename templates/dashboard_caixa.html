@@ -14,7 +14,7 @@
 <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
 <div id="sidebar" class="sidebar">
     <div class="sidebar-header">
-        <div class="logo">🍔 GFood</div>
+        <div class="logo">GFood</div>
         <div class="subtitle">{{ user.first_name|default:user.username }}</div>
     </div>
     <div class="sidebar-item active" id="nav-caixa" onclick="switchMode('caixa')">
@@ -54,18 +54,18 @@
 
 <!-- ====== CAIXA MODE TABS ====== -->
 <div id="tabs-caixa" class="tabs-nav">
-    <button class="tab-btn active" data-tab="cartao" onclick="switchTab('cartao', this)">🆕 Cartão</button>
-    <button class="tab-btn" data-tab="saldo" onclick="switchTab('saldo', this)">💰 Saldo</button>
-    <button class="tab-btn" data-tab="gerenciar" onclick="switchTab('gerenciar', this)">🔒 Cartões</button>
-    <button class="tab-btn" data-tab="relatorio" onclick="switchTab('relatorio', this)">📊 Relatório</button>
+    <button class="tab-btn active" data-tab="cartao" onclick="switchTab('cartao', this)">Cartão</button>
+    <button class="tab-btn" data-tab="saldo" onclick="switchTab('saldo', this)">Saldo</button>
+    <button class="tab-btn" data-tab="gerenciar" onclick="switchTab('gerenciar', this)">Cartões</button>
+    <button class="tab-btn" data-tab="relatorio" onclick="switchTab('relatorio', this)">Relatório</button>
 </div>
 
 <!-- ====== BALCAO MODE TABS ====== -->
 <div id="tabs-balcao" class="tabs-nav" style="display:none;">
-    <button class="tab-btn active" data-tab="cardapio" onclick="switchTab('cardapio', this)">🍕 Cardápio</button>
-    <button class="tab-btn" data-tab="carrinho" onclick="switchTab('carrinho', this)">🛒 Carrinho <span
+    <button class="tab-btn active" data-tab="cardapio" onclick="switchTab('cardapio', this)">Cardápio</button>
+    <button class="tab-btn" data-tab="carrinho" onclick="switchTab('carrinho', this)">Carrinho <span
             id="cart-badge-b"></span></button>
-    <button class="tab-btn" data-tab="consultar-saldo" onclick="switchTab('consultar-saldo', this)">💰 Saldo</button>
+    <button class="tab-btn" data-tab="consultar-saldo" onclick="switchTab('consultar-saldo', this)">Saldo</button>
 </div>
 
 <!-- Tab: Cardápio (shared) -->
