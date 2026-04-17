@@ -436,3 +436,199 @@ def api_transfer_balance(request):
     })
 
 
+# ===== Integração Asaas =====
+import requests as http_requests
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings as django_settings
+from decimal import Decimal
+from datetime import date, timedelta
+from .models import Recarga
+
+
+def _asaas_headers():
+    return {
+        'access_token': django_settings.ASAAS_API_KEY,
+        'Content-Type': 'application/json',
+    }
+
+
+def _get_or_create_asaas_customer(user):
+    """Cria o customer no Asaas se ainda não existir."""
+    if user.asaas_customer_id:
+        return user.asaas_customer_id
+
+    # Exige CPF válido
+    cpf_limpo = ''.join(c for c in (user.cpf or '') if c.isdigit())
+    if len(cpf_limpo) != 11:
+        raise Exception('CPF inválido ou não cadastrado. Atualize seu CPF no perfil.')
+
+    payload = {
+        'name': user.first_name or user.username,
+        'cpfCnpj': cpf_limpo,
+    }
+    if user.email:
+        payload['email'] = user.email
+
+    url = f'{django_settings.ASAAS_BASE_URL}/customers'
+    headers = _asaas_headers()
+    print(f'[ASAAS] POST {url}')
+    print(f'[ASAAS] Payload: {payload}')
+
+    resp = http_requests.post(
+        url,
+        json=payload,
+        headers=headers,
+        timeout=15,
+    )
+
+    print(f'[ASAAS] Status: {resp.status_code}')
+    print(f'[ASAAS] Response: {resp.text[:500]}')
+
+    try:
+        data = resp.json()
+    except Exception:
+        raise Exception(f'Asaas retornou resposta inválida (HTTP {resp.status_code}): {resp.text[:200]}')
+
+    if resp.status_code >= 400:
+        raise Exception(data.get('errors', [{'description': 'Erro ao criar cliente no Asaas'}])[0].get('description', 'Erro desconhecido'))
+
+    user.asaas_customer_id = data['id']
+    user.save(update_fields=['asaas_customer_id'])
+    return data['id']
+
+
+@login_required
+@require_POST
+def api_asaas_create_payment(request):
+    """Cria cobrança PIX no Asaas e retorna QR Code."""
+    if request.user.user_type not in ('cliente', 'admin'):
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+
+    data = json.loads(request.body)
+    valor = data.get('valor', 0)
+    try:
+        valor = float(valor)
+        if valor < 1.00:
+            return JsonResponse({'error': 'Valor mínimo é R$ 1,00'}, status=400)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Valor inválido'}, status=400)
+
+    # Criar customer no Asaas se necessário
+    try:
+        customer_id = _get_or_create_asaas_customer(request.user)
+    except Exception as e:
+        return JsonResponse({'error': f'Erro ao conectar com Asaas: {str(e)}'}, status=500)
+
+    # Criar cobrança PIX
+    due_date = (date.today() + timedelta(days=1)).isoformat()
+    payment_payload = {
+        'customer': customer_id,
+        'billingType': 'PIX',
+        'value': valor,
+        'dueDate': due_date,
+        'description': f'Recarga GFood - R$ {valor:.2f}',
+    }
+
+    try:
+        resp = http_requests.post(
+            f'{django_settings.ASAAS_BASE_URL}/payments',
+            json=payment_payload,
+            headers=_asaas_headers(),
+            timeout=15,
+        )
+        payment = resp.json()
+        if resp.status_code >= 400:
+            error_msg = payment.get('errors', [{'description': 'Erro ao criar cobrança'}])[0].get('description', 'Erro desconhecido')
+            return JsonResponse({'error': error_msg}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Erro de conexão: {str(e)}'}, status=500)
+
+    # Buscar QR Code PIX
+    try:
+        pix_resp = http_requests.get(
+            f'{django_settings.ASAAS_BASE_URL}/payments/{payment["id"]}/pixQrCode',
+            headers=_asaas_headers(),
+            timeout=15,
+        )
+        pix_data = pix_resp.json()
+    except Exception:
+        pix_data = {}
+
+    # Salvar recarga pendente
+    card, _ = Card.objects.get_or_create(user=request.user)
+    recarga = Recarga.objects.create(
+        card=card,
+        user=request.user,
+        valor=Decimal(str(valor)),
+        asaas_payment_id=payment['id'],
+        status='pendente',
+    )
+
+    return JsonResponse({
+        'success': True,
+        'recarga_id': recarga.id,
+        'pix_qr_code_image': pix_data.get('encodedImage', ''),
+        'pix_copia_cola': pix_data.get('payload', ''),
+        'valor': f'{valor:.2f}',
+    })
+
+
+@csrf_exempt
+def api_asaas_webhook(request):
+    """Recebe notificações do Asaas quando o pagamento é confirmado."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+
+    # Validar token de autenticação
+    token = request.headers.get('asaas-access-token', '')
+    if token and token != django_settings.ASAAS_WEBHOOK_TOKEN:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    event = data.get('event', '')
+    payment = data.get('payment', {})
+    payment_id = payment.get('id', '')
+
+    if event in ('PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED') and payment_id:
+        try:
+            recarga = Recarga.objects.get(asaas_payment_id=payment_id, status='pendente')
+            # Creditar saldo
+            card = recarga.card
+            card.saldo += recarga.valor
+            card.save()
+
+            # Marcar como pago
+            recarga.status = 'pago'
+            recarga.save()
+
+            # Criar transação
+            Transaction.objects.create(
+                card=card,
+                tipo='deposito',
+                valor=recarga.valor,
+                metodo='pix',
+                origem='app',
+                descricao='Recarga via PIX (Asaas)',
+                operador=recarga.user,
+            )
+        except Recarga.DoesNotExist:
+            pass  # Pagamento já processado ou não encontrado
+
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def api_asaas_check_payment(request, recarga_id):
+    """Cliente verifica se o pagamento foi confirmado."""
+    try:
+        recarga = Recarga.objects.get(id=recarga_id, user=request.user)
+        return JsonResponse({
+            'status': recarga.status,
+            'valor': str(recarga.valor),
+        })
+    except Recarga.DoesNotExist:
+        return JsonResponse({'error': 'Recarga não encontrada'}, status=404)

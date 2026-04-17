@@ -24,27 +24,107 @@ function setValor(v) {
     document.getElementById('add-valor').value = v;
 }
 
-async function adicionarSaldo() {
+// ===== Integração PIX Asaas =====
+let pixPollingInterval = null;
+let currentRecargaId = null;
+
+async function gerarPixRecarga() {
     const valor = document.getElementById('add-valor').value;
-    const metodo = document.getElementById('add-metodo').value;
-    if (!valor || parseFloat(valor) <= 0) {
-        showToast('Digite um valor válido', 'error');
+    if (!valor || parseFloat(valor) < 1) {
+        showToast('Valor mínimo é R$ 1,00', 'error');
         return;
     }
+
+    const btn = document.getElementById('btn-gerar-pix');
+    btn.disabled = true;
+    btn.textContent = 'Gerando...';
+
     try {
-        const data = await apiFetch('/api/cards/client/add/', {
+        const data = await apiFetch('/api/asaas/create-payment/', {
             method: 'POST',
-            body: JSON.stringify({ valor: valor, metodo: metodo })
+            body: JSON.stringify({ valor: valor })
         });
-        document.getElementById('my-saldo').textContent = `R$ ${parseFloat(data.novo_saldo).toFixed(2)}`;
-        document.getElementById('add-valor').value = '';
-        showToast(`R$ ${parseFloat(valor).toFixed(2)} adicionados ao saldo!`);
-        loadExtrato();
+
+        if (!data.success) {
+            showToast(data.error || 'Erro ao gerar PIX', 'error');
+            return;
+        }
+
+        // Mostrar QR Code
+        currentRecargaId = data.recarga_id;
+        document.getElementById('pix-qr-img').src = 'data:image/png;base64,' + data.pix_qr_code_image;
+        document.getElementById('pix-copia-cola').value = data.pix_copia_cola;
+        document.getElementById('pix-valor-display').textContent = `R$ ${parseFloat(data.valor).toFixed(2)}`;
+
+        // Trocar para etapa 2
+        document.getElementById('pix-step-1').style.display = 'none';
+        document.getElementById('pix-step-2').style.display = 'block';
+
+        // Iniciar polling
+        iniciarPolling(data.recarga_id);
+
     } catch (e) {
         showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Gerar PIX';
     }
 }
 
+function copiarPix() {
+    const input = document.getElementById('pix-copia-cola');
+    navigator.clipboard.writeText(input.value).then(() => {
+        showToast('Código PIX copiado!');
+    }).catch(() => {
+        input.select();
+        document.execCommand('copy');
+        showToast('Código PIX copiado!');
+    });
+}
+
+function iniciarPolling(recargaId) {
+    pararPolling();
+    pixPollingInterval = setInterval(async () => {
+        try {
+            const data = await apiFetch(`/api/asaas/check-payment/${recargaId}/`);
+            if (data.status === 'pago') {
+                pararPolling();
+                // Mostrar sucesso
+                document.getElementById('pix-step-2').style.display = 'none';
+                document.getElementById('pix-step-3').style.display = 'block';
+                document.getElementById('pix-valor-confirmado').textContent = `+ R$ ${parseFloat(data.valor).toFixed(2)}`;
+                // Atualizar saldo
+                loadMyCard();
+            }
+        } catch (e) {
+            // Silenciar erros de polling
+        }
+    }, 3000); // Verificar a cada 3 segundos
+}
+
+function pararPolling() {
+    if (pixPollingInterval) {
+        clearInterval(pixPollingInterval);
+        pixPollingInterval = null;
+    }
+}
+
+function cancelarPix() {
+    pararPolling();
+    currentRecargaId = null;
+    document.getElementById('pix-step-2').style.display = 'none';
+    document.getElementById('pix-step-1').style.display = 'block';
+    document.getElementById('add-valor').value = '';
+}
+
+function voltarPixInicio() {
+    document.getElementById('pix-step-3').style.display = 'none';
+    document.getElementById('pix-step-1').style.display = 'block';
+    document.getElementById('add-valor').value = '';
+    loadExtrato();
+}
+
+// ===== Extrato =====
 async function loadExtrato() {
     const container = document.getElementById('extrato-list');
     container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';

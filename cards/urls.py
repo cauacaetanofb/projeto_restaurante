@@ -13,4 +13,8 @@ urlpatterns = [
     path('api/cards/search-cpf/', views.api_search_by_cpf, name='api_search_by_cpf'),
     path('api/cards/block/', views.api_block_card, name='api_block_card'),
     path('api/cards/transfer/', views.api_transfer_balance, name='api_transfer_balance'),
+    # Asaas
+    path('api/asaas/create-payment/', views.api_asaas_create_payment, name='api_asaas_create_payment'),
+    path('api/asaas/webhook/', views.api_asaas_webhook, name='api_asaas_webhook'),
+    path('api/asaas/check-payment/<int:recarga_id>/', views.api_asaas_check_payment, name='api_asaas_check_payment'),
 ]

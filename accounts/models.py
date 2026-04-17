@@ -21,6 +21,7 @@ class User(AbstractUser):
     )
     cpf = models.CharField(max_length=14, blank=True, verbose_name='CPF')
     telefone = models.CharField(max_length=15, blank=True, verbose_name='Telefone')
+    asaas_customer_id = models.CharField(max_length=100, blank=True, verbose_name='Asaas Customer ID')
 
     class Meta:
         verbose_name = 'Usuário'

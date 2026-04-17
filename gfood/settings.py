@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,12 +25,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-TOKEN_CSRF = os.getenv('TOKEN_CSRF')
-if TOKEN_CSRF:
-    SECRET_KEY = TOKEN_CSRF
-    CSRF_TRUSTED_ORIGINS = ['https://projetorestaurante-production.up.railway.app']
-else:
-    SECRET_KEY = 'django-insecure-u@stz()&48*tv$3%z7@m45o)7^e#vxcl95@$k(9wy$1&hn750t'
+SECRET_KEY = os.getenv('TOKEN_CSRF', os.getenv('SECRET_KEY', 'django-insecure-dev-only-key'))
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else []
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -160,3 +159,8 @@ DEFAULT_FROM_EMAIL = 'GFood <noreply@gfood.com>'
 AUTHENTICATION_BACKENDS = [
     'accounts.backends.EmailOrUsernameBackend',
 ]
+
+ASAAS_API_KEY = os.getenv('ASAAS_API_KEY', '')
+ASAAS_BASE_URL = os.getenv('ASAAS_BASE_URL', 'https://api.asaas.com/api/v3')
+ASAAS_WEBHOOK_TOKEN = os.getenv('ASAAS_WEBHOOK_TOKEN', '')
+

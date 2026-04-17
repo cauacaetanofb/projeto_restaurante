@@ -80,3 +80,26 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} - R$ {self.valor} ({self.get_metodo_display()})'
+
+
+class Recarga(models.Model):
+    STATUS_CHOICES = (
+        ('pendente', 'Pendente'),
+        ('pago', 'Pago'),
+        ('vencido', 'Vencido'),
+    )
+
+    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='recargas', verbose_name='Cartão')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Usuário')
+    valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Valor')
+    asaas_payment_id = models.CharField(max_length=100, unique=True, verbose_name='ID Pagamento Asaas')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name='Status')
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Recarga'
+        verbose_name_plural = 'Recargas'
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f'Recarga R$ {self.valor} - {self.get_status_display()} ({self.asaas_payment_id})'
