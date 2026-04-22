@@ -229,6 +229,7 @@ def api_my_profile(request):
             'username': u.username,
             'first_name': u.first_name,
             'email': u.email,
+            'cpf': u.cpf,
         }
     })
 
@@ -241,6 +242,8 @@ def api_update_my_profile(request):
 
     user.first_name = data.get('first_name', user.first_name)
     user.email = data.get('email', user.email)
+    if 'cpf' in data:
+        user.cpf = data['cpf'].strip()
 
     new_username = data.get('username', '').strip()
     if new_username and new_username != user.username:

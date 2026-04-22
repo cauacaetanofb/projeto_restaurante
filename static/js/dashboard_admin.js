@@ -429,6 +429,7 @@ async function openMyProfile() {
         document.getElementById('pf-nome').value = p.first_name || '';
         document.getElementById('pf-username').value = p.username || '';
         document.getElementById('pf-email').value = p.email || '';
+        document.getElementById('pf-cpf').value = p.cpf || '';
         document.getElementById('pf-password').value = '';
         openModal('modal-profile');
     } catch (e) { showToast(e.message, 'error'); }
@@ -440,6 +441,7 @@ async function saveProfile(e) {
         first_name: document.getElementById('pf-nome').value,
         username: document.getElementById('pf-username').value,
         email: document.getElementById('pf-email').value,
+        cpf: document.getElementById('pf-cpf').value,
     };
     const pw = document.getElementById('pf-password').value;
     if (pw) body.password = pw;
