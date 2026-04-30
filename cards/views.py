@@ -1,6 +1,7 @@
 import base64
 import io
 import qrcode
+from decimal import Decimal as D
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -77,12 +78,12 @@ def api_add_balance(request):
         card = Card.objects.get(qr_code_data=qr_data)
         if card.bloqueado:
             return JsonResponse({'error': 'Este cartão está cancelado'}, status=400)
-        card.saldo += round(valor, 2)
+        card.saldo += D(str(round(valor, 2)))
         card.save()
         Transaction.objects.create(
             card=card,
             tipo='deposito',
-            valor=round(valor, 2),
+            valor=D(str(round(valor, 2))),
             metodo=metodo,
             origem='caixa',
             descricao=f'Recarga presencial via {dict(Transaction.METODO_CHOICES).get(metodo, metodo)}',
@@ -114,12 +115,12 @@ def api_remove_balance(request):
         card = Card.objects.get(qr_code_data=qr_data)
         if float(card.saldo) < valor:
             return JsonResponse({'error': 'Saldo insuficiente'}, status=400)
-        card.saldo -= round(valor, 2)
+        card.saldo -= D(str(round(valor, 2)))
         card.save()
         Transaction.objects.create(
             card=card,
             tipo='retirada',
-            valor=round(valor, 2),
+            valor=D(str(round(valor, 2))),
             metodo=metodo,
             descricao='Retirada de saldo',
             operador=request.user,
@@ -166,7 +167,7 @@ def api_create_temp_card(request):
             card.nome = nome
             card.cpf = cpf
             card.telefone = telefone
-            card.saldo += round(valor, 2)
+            card.saldo += D(str(round(valor, 2)))
             card.save()
         except Card.DoesNotExist:
             return JsonResponse({'error': 'QR Code do cartão físico não encontrado'}, status=404)
@@ -176,14 +177,14 @@ def api_create_temp_card(request):
             nome=nome,
             cpf=cpf,
             telefone=telefone,
-            saldo=round(valor, 2),
+            saldo=D(str(round(valor, 2))),
         )
 
     # Registrar depósito inicial
     Transaction.objects.create(
         card=card,
         tipo='deposito',
-        valor=round(valor, 2),
+        valor=D(str(round(valor, 2))),
         metodo=metodo,
         origem='caixa',
         descricao=f'Recarga presencial — novo cartão para {nome}',
@@ -220,12 +221,12 @@ def api_client_add_balance(request):
         return JsonResponse({'error': 'Valor inválido'}, status=400)
 
     card, _ = Card.objects.get_or_create(user=request.user)
-    card.saldo += round(valor, 2)
+    card.saldo += D(str(round(valor, 2)))
     card.save()
     Transaction.objects.create(
         card=card,
         tipo='deposito',
-        valor=round(valor, 2),
+        valor=D(str(round(valor, 2))),
         metodo=metodo,
         origem='app',
         descricao=f'Recarga pelo app via {dict(Transaction.METODO_CHOICES).get(metodo, metodo)}',
