@@ -245,9 +245,13 @@ async function processPayment() {
         cart = [];
         updateCartBadge();
         document.getElementById('pay-qr-input').value = '';
-        document.getElementById('pay-card-info').style.display = 'none';
-        document.getElementById('btn-pay').style.display = 'none';
-        document.getElementById('pay-cart-summary').innerHTML = '';
+        const cardInfo = document.getElementById('pay-card-info');
+        if (cardInfo) cardInfo.style.display = 'none';
+        const btnPay = document.getElementById('btn-pay');
+        if (btnPay) btnPay.style.display = 'none';
+        const cartSummary = document.getElementById('pay-cart-summary');
+        if (cartSummary) cartSummary.innerHTML = '';
+        renderCart();
     } catch (e) { showToast(e.message, 'error'); }
 }
 

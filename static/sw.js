@@ -1,5 +1,5 @@
 // Service Worker — GFood PWA
-const CACHE_NAME = 'gfood-v1';
+const CACHE_NAME = 'gfood-v3';
 
 // Instala o Service Worker e faz cache dos recursos essenciais
 self.addEventListener('install', event => {

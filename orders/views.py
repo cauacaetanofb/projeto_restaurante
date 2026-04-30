@@ -13,7 +13,7 @@ from products.models import Product
 @require_POST
 def api_create_order(request):
     """Cria pedido, debita saldo do cartão."""
-    if request.user.user_type not in ['balcao', 'caixa']:
+    if request.user.user_type not in ['admin', 'balcao', 'caixa']:
         return JsonResponse({'error': 'Sem permissão'}, status=403)
 
     data = json.loads(request.body)

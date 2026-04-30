@@ -208,10 +208,15 @@ async function processPayment() {
         cart = [];
         updateCartBadge();
         document.getElementById('pay-qr-input').value = '';
-        document.getElementById('pay-card-info').style.display = 'none';
-        document.getElementById('btn-pay').style.display = 'none';
-        document.getElementById('pay-cart-summary').innerHTML = '';
-        document.getElementById('pay-client-saldo').textContent = `R$ ${parseFloat(data.novo_saldo).toFixed(2)}`;
+        const cardInfo = document.getElementById('pay-card-info');
+        if (cardInfo) cardInfo.style.display = 'none';
+        const btnPay = document.getElementById('btn-pay');
+        if (btnPay) btnPay.style.display = 'none';
+        const cartSummary = document.getElementById('pay-cart-summary');
+        if (cartSummary) cartSummary.innerHTML = '';
+        const saldoEl = document.getElementById('pay-client-saldo');
+        if (saldoEl) saldoEl.textContent = `R$ ${parseFloat(data.novo_saldo).toFixed(2)}`;
+        renderCart();
     } catch (e) {
         showToast(e.message, 'error');
     }
