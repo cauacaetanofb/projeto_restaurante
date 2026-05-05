@@ -494,7 +494,7 @@ def _get_or_create_asaas_customer(user):
     try:
         data = resp.json()
     except Exception:
-        raise Exception(f'Asaas retornou resposta inválida (HTTP {resp.status_code}): {resp.text[:200]}')
+        raise Exception(f'Asaas retornou resposta inválida (HTTP {resp.status_code}) em {url}: {resp.text[:200]}')
 
     if resp.status_code >= 400:
         raise Exception(data.get('errors', [{'description': 'Erro ao criar cliente no Asaas'}])[0].get('description', 'Erro desconhecido'))
