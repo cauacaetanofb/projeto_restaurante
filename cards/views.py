@@ -537,7 +537,12 @@ def api_asaas_create_payment(request):
             headers=_asaas_headers(),
             timeout=15,
         )
-        payment = resp.json()
+        try:
+            payment = resp.json()
+        except Exception:
+            return JsonResponse({
+                'error': f'Asaas retornou resposta inválida (HTTP {resp.status_code}): {resp.text[:300]}'
+            }, status=500)
         if resp.status_code >= 400:
             error_msg = payment.get('errors', [{'description': 'Erro ao criar cobrança'}])[0].get('description', 'Erro desconhecido')
             return JsonResponse({'error': error_msg}, status=400)
