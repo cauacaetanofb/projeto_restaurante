@@ -550,9 +550,31 @@ def api_asaas_create_payment(request):
             return JsonResponse({
                 'error': f'Asaas retornou resposta inválida (HTTP {resp.status_code}): {resp.text[:300]}'
             }, status=500)
+
+        # Se o customer é inválido (migração sandbox→produção), recria
         if resp.status_code >= 400:
-            error_msg = payment.get('errors', [{'description': 'Erro ao criar cobrança'}])[0].get('description', 'Erro desconhecido')
-            return JsonResponse({'error': error_msg}, status=400)
+            error_msg = payment.get('errors', [{}])[0].get('description', '') if payment.get('errors') else ''
+            if 'ustomer' in error_msg.lower() or 'inválido' in error_msg.lower():
+                # Limpa customer_id antigo e cria novo
+                request.user.asaas_customer_id = ''
+                request.user.save(update_fields=['asaas_customer_id'])
+                try:
+                    new_customer_id = _get_or_create_asaas_customer(request.user)
+                    payment_payload['customer'] = new_customer_id
+                    resp = http_requests.post(
+                        _asaas_url('payments'),
+                        json=payment_payload,
+                        headers=_asaas_headers(),
+                        timeout=15,
+                    )
+                    payment = resp.json()
+                    if resp.status_code >= 400:
+                        error_msg = payment.get('errors', [{'description': 'Erro ao criar cobrança'}])[0].get('description', 'Erro desconhecido')
+                        return JsonResponse({'error': error_msg}, status=400)
+                except Exception as e:
+                    return JsonResponse({'error': f'Erro ao recriar cliente: {str(e)}'}, status=500)
+            else:
+                return JsonResponse({'error': error_msg or 'Erro ao criar cobrança'}, status=400)
     except Exception as e:
         return JsonResponse({'error': f'Erro de conexão: {str(e)}'}, status=500)
 
