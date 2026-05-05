@@ -479,6 +479,7 @@ def _get_or_create_asaas_customer(user):
     url = _asaas_url('customers')
     headers = _asaas_headers()
     print(f'[ASAAS] POST {url}')
+    print(f'[ASAAS] API KEY (primeiros 15 chars): {django_settings.ASAAS_API_KEY[:15]}...')
     print(f'[ASAAS] Payload: {payload}')
 
     resp = http_requests.post(
