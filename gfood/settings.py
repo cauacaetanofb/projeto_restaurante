@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv('TOKEN_CSRF', os.getenv('SECRET_KEY', 'django-insecure-de
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else ['https://projetorestaurante-production.up.railway.app']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['projetorestaurante-production.up.railway.app', 'localhost', '127.0.0.1']
 
