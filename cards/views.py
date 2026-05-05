@@ -448,9 +448,15 @@ from .models import Recarga
 
 def _asaas_headers():
     return {
-        'access_token': django_settings.ASAAS_API_KEY,
+        'access_token': django_settings.ASAAS_API_KEY.strip(),
         'Content-Type': 'application/json',
     }
+
+
+def _asaas_url(path):
+    """Monta URL da API Asaas, removendo barras extras."""
+    base = django_settings.ASAAS_BASE_URL.strip().rstrip('/')
+    return f'{base}/{path.lstrip("/")}'
 
 
 def _get_or_create_asaas_customer(user):
@@ -470,7 +476,7 @@ def _get_or_create_asaas_customer(user):
     if user.email:
         payload['email'] = user.email
 
-    url = f'{django_settings.ASAAS_BASE_URL}/customers'
+    url = _asaas_url('customers')
     headers = _asaas_headers()
     print(f'[ASAAS] POST {url}')
     print(f'[ASAAS] Payload: {payload}')
@@ -532,7 +538,7 @@ def api_asaas_create_payment(request):
 
     try:
         resp = http_requests.post(
-            f'{django_settings.ASAAS_BASE_URL}/payments',
+            _asaas_url('payments'),
             json=payment_payload,
             headers=_asaas_headers(),
             timeout=15,
@@ -552,7 +558,7 @@ def api_asaas_create_payment(request):
     # Buscar QR Code PIX
     try:
         pix_resp = http_requests.get(
-            f'{django_settings.ASAAS_BASE_URL}/payments/{payment["id"]}/pixQrCode',
+            _asaas_url(f'payments/{payment["id"]}/pixQrCode'),
             headers=_asaas_headers(),
             timeout=15,
         )
