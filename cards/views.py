@@ -589,6 +589,8 @@ def api_asaas_create_payment(request):
 @csrf_exempt
 def api_asaas_webhook(request):
     """Recebe notificações do Asaas quando o pagamento é confirmado."""
+    if request.method == 'GET':
+        return JsonResponse({'ok': True})  # Verificação de URL pelo Asaas
     if request.method != 'POST':
         return JsonResponse({'error': 'Método não permitido'}, status=405)
 
