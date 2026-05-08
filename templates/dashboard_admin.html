@@ -9,7 +9,6 @@
     <div style="display:flex;align-items:center;gap:0.5rem;">
         {% if is_admin %}<button class="btn-hamburger" onclick="toggleSidebar()">☰</button>{% endif %}
         <div class="logo">GFood</div>
-        <span class="mode-badge">ADMIN</span>
     </div>
     <div class="user-info">
         <span class="user-name" onclick="openMyProfile()" style="cursor:pointer;text-decoration:underline dotted;">⚙️ {{ user.first_name|default:user.username }}</span>

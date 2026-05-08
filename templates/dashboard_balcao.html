@@ -13,7 +13,6 @@
     <div style="display:flex;align-items:center;gap:0.5rem;">
         {% if is_admin %}<button class="btn-hamburger" onclick="toggleSidebar()">☰</button>{% endif %}
         <div class="logo">GFood</div>
-        <span class="mode-badge">BALCÃO</span>
     </div>
     <div class="user-info">
         <span class="user-name">{{ user.first_name|default:user.username }}</span>
