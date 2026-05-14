@@ -26,6 +26,7 @@ class Product(models.Model):
         verbose_name='Categoria'
     )
     imagem = models.ImageField(upload_to='produtos/', blank=True, null=True, verbose_name='Imagem')
+    imagem_base64 = models.TextField(blank=True, null=True, verbose_name='Imagem (Base64)')
     disponivel = models.BooleanField(default=True, verbose_name='Disponível')
     criado_em = models.DateTimeField(auto_now_add=True)
 

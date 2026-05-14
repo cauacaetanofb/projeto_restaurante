@@ -1,8 +1,28 @@
+import base64
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from .models import Product, Category
+
+
+def _image_to_base64(image_file):
+    """Converte um arquivo de imagem para string base64 com data URI."""
+    if not image_file:
+        return None
+    content = image_file.read()
+    content_type = getattr(image_file, 'content_type', 'image/jpeg')
+    b64 = base64.b64encode(content).decode('utf-8')
+    return f'data:{content_type};base64,{b64}'
+
+
+def _get_product_image(product):
+    """Retorna a URL da imagem do produto (base64 ou media URL)."""
+    if product.imagem_base64:
+        return product.imagem_base64
+    if product.imagem:
+        return product.imagem.url
+    return None
 
 
 @login_required
@@ -17,7 +37,7 @@ def api_list_products(request):
             'preco': str(p.preco),
             'categoria': p.categoria.nome if p.categoria else 'Sem categoria',
             'categoria_id': p.categoria_id,
-            'imagem': p.imagem.url if p.imagem else None,
+            'imagem': _get_product_image(p),
             'disponivel': p.disponivel,
         })
     return JsonResponse({'products': data})
@@ -39,7 +59,7 @@ def api_all_products(request):
             'categoria': p.categoria.nome if p.categoria else 'Sem categoria',
             'categoria_id': p.categoria_id,
             'disponivel': p.disponivel,
-            'imagem': p.imagem.url if p.imagem else None,
+            'imagem': _get_product_image(p),
         })
     return JsonResponse({'products': data})
 
@@ -59,12 +79,15 @@ def api_create_product(request):
     if categoria_nome:
         categoria, _ = Category.objects.get_or_create(nome=categoria_nome)
 
+    # Converter imagem para base64
+    imagem_base64 = _image_to_base64(imagem)
+
     product = Product.objects.create(
         nome=nome,
         descricao=descricao,
         preco=preco,
         categoria=categoria,
-        imagem=imagem,
+        imagem_base64=imagem_base64,
     )
     return JsonResponse({
         'success': True,
@@ -74,6 +97,7 @@ def api_create_product(request):
             'preco': str(product.preco),
             'categoria': categoria.nome if categoria else 'Sem categoria',
             'disponivel': product.disponivel,
+            'imagem': _get_product_image(product),
         }
     })
 
@@ -100,9 +124,10 @@ def api_update_product(request, product_id):
         categoria, _ = Category.objects.get_or_create(nome=categoria_nome)
         product.categoria = categoria
 
+    # Atualizar imagem se enviada
     imagem = request.FILES.get('imagem')
     if imagem:
-        product.imagem = imagem
+        product.imagem_base64 = _image_to_base64(imagem)
 
     product.save()
     return JsonResponse({'success': True})
@@ -118,6 +143,3 @@ def api_delete_product(request, product_id):
         return JsonResponse({'success': True})
     except Product.DoesNotExist:
         return JsonResponse({'error': 'Produto não encontrado'}, status=404)
-
-
-
