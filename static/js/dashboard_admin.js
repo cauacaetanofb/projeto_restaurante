@@ -48,12 +48,13 @@ function renderProducts(products) {
     }
     container.innerHTML = products.map(p => `
         <div class="product-item">
-            <div class="product-info">
+            ${p.imagem ? `<img src="${p.imagem}" alt="" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--bg-dark);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📦</div>`}
+            <div class="product-info" style="flex:1;min-width:0;">
                 <div class="name">${p.nome}</div>
                 <div class="price">R$ ${parseFloat(p.preco).toFixed(2)}</div>
                 <div class="category">${p.categoria}${p.disponivel ? '' : ' • <span style="color:var(--danger)">Indisponível</span>'}</div>
             </div>
-            <button class="btn-add-cart" onclick="editProduct(${p.id}, '${p.nome}', '${p.preco}', '${p.categoria}', '${(p.descricao||'').replace(/'/g,"\\'")}', ${p.disponivel})" title="Editar">✏️</button>
+            <button class="btn-add-cart" onclick="editProduct(${p.id}, '${p.nome}', '${p.preco}', '${p.categoria}', '${(p.descricao||'').replace(/'/g,"\\'")}', ${p.disponivel}, '${p.imagem||''}')" title="Editar">✏️</button>
             <button class="btn-add-cart" onclick="deleteProduct(${p.id})" style="background:var(--danger);" title="Excluir">🗑️</button>
         </div>
     `).join('');
@@ -64,10 +65,12 @@ function openAddProduct() {
     document.getElementById('modal-product-title').textContent = 'Novo Produto';
     document.getElementById('form-product').reset();
     document.getElementById('p-disponivel').checked = true;
+    document.getElementById('p-imagem-preview').style.display = 'none';
+    document.getElementById('p-imagem-preview').src = '';
     openModal('modal-product');
 }
 
-function editProduct(id, nome, preco, categoria, descricao, disponivel) {
+function editProduct(id, nome, preco, categoria, descricao, disponivel, imagem) {
     document.getElementById('product-id').value = id;
     document.getElementById('modal-product-title').textContent = 'Editar Produto';
     document.getElementById('p-nome').value = nome;
@@ -75,6 +78,15 @@ function editProduct(id, nome, preco, categoria, descricao, disponivel) {
     document.getElementById('p-categoria').value = categoria === 'Sem categoria' ? '' : categoria;
     document.getElementById('p-descricao').value = descricao;
     document.getElementById('p-disponivel').checked = disponivel;
+    document.getElementById('p-imagem').value = '';
+    const preview = document.getElementById('p-imagem-preview');
+    if (imagem) {
+        preview.src = imagem;
+        preview.style.display = 'block';
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+    }
     openModal('modal-product');
 }
 

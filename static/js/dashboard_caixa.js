@@ -95,7 +95,8 @@ function renderMenu() {
     }
     container.innerHTML = products.map(p => `
         <div class="product-item">
-            <div class="product-info">
+            ${p.imagem ? `<img src="${p.imagem}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0;">` : `<div style="width:48px;height:48px;border-radius:10px;background:var(--bg-dark);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🍽️</div>`}
+            <div class="product-info" style="flex:1;min-width:0;">
                 <div class="name">${p.nome}</div>
                 <div class="price">R$ ${parseFloat(p.preco).toFixed(2)}</div>
                 <div class="category">${p.categoria}</div>

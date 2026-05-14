@@ -39,6 +39,7 @@ def api_all_products(request):
             'categoria': p.categoria.nome if p.categoria else 'Sem categoria',
             'categoria_id': p.categoria_id,
             'disponivel': p.disponivel,
+            'imagem': p.imagem.url if p.imagem else None,
         })
     return JsonResponse({'products': data})
 
